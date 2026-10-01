@@ -26,6 +26,12 @@ Herda as regras do projecto `bet`, que foram pagas com erros reais. Aqui ficam a
 
 **A liquidez limita o tamanho.** Não se recomenda comprar mais cópias de uma carta do que ela vende numa fracção razoável de uma hora. A quantidade mede-se pelo histórico de vendas.
 
+## O repositório é público
+
+**Nenhum preço entra no git.** Os preços do parse.bot são dados do FUTBIN, e republicá-los num repositório aberto expõe-nos mais aos termos do FUTBIN. Ficam em `precos/` (ignorado) localmente e na Action. A CI recusa qualquer ficheiro em `precos/`, qualquer `.parquet`, e qualquer CSV com uma coluna `preco*` ou `price*`.
+
+**Nenhum email pessoal nos commits.** Este clone usa `58251745+berna2001@users.noreply.github.com`. O repositório foi recriado a 01/10/2026 precisamente por isso: os commits dos ramos de PR tinham o email pessoal, e as referências `refs/pull/N/head` não se apagam. O original, com os PRs #1 a #4, está em `berna2001/fut-trading-arquivo`, privado.
+
 ## Créditos do parse.bot
 
 O plano grátis dá 200 créditos por mês. Custos por chamada, lidos da página da API em 01/10/2026:
