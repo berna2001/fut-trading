@@ -27,7 +27,27 @@ FIM = date(2026, 9, 13)
 # Corte da validação do ciclo semanal: escolhe-se na primeira metade, mede-se
 # na segunda.
 CORTE = date(2026, 3, 16)
-FODDER = [84, 85, 86, 87]  # o 83 fica de fora: ver secção do 83
+FODDER = [84, 85, 86, 87]  # o 83 fica de fora: ver "Ratings no preço mínimo"
+RATINGS_APP = [85, 86, 87]  # os que a app recomenda
+DIAS_COMPRA = [5, 6, 0, 1]  # sábado, domingo, segunda, terça
+DIA_VENDA = 2               # quarta
+CORTES_SENSIBILIDADE = [date(2026, 1, 5), date(2026, 2, 2), date(2026, 3, 16),
+                        date(2026, 4, 13), date(2026, 5, 11)]
+# Os números que o conselheiro usa. Gerados aqui, nunca copiados à mão.
+NUMEROS = Path(__file__).with_name("estudos") / "numeros_fc26.json"
+
+
+def aparada(v, corte=0.1):
+    """Média sem os 10% de cada ponta: a média de +10% da 2.ª metade vinha
+    de três semanas de +41% a +72%."""
+    v = sorted(v)
+    k = int(len(v) * corte)
+    return st.mean(v[k:len(v) - k]) if len(v) > 2 * k else st.mean(v)
+
+
+def fracao_no_minimo(series, inicio, fim, margem=0.02):
+    dias = [(v, min(s.values())) for s in series for d, v in s.items() if inicio <= d <= fim]
+    return sum(v <= m * (1 + margem) for v, m in dias) / len(dias)
 
 
 def pct(x):
@@ -125,6 +145,40 @@ def gerar():
           f"| {pct(st.median(v2))} ({sum(x > 0 for x in v2)}/{len(v2)}) |")
     a("")
 
+    # A app mostrava o ROI do perfil da época inteira, que inclui a metade
+    # usada para escolher a regra (revisão independente de 01/10/2026). Os
+    # números que ela usa passam a ser estes: só a 2.ª metade, só 84-87 (o
+    # conjunto fixado antes de olhar para os resultados), com intervalo.
+    a("## O que a app usa: ROI medido só na 2.ª metade\n")
+    a(f"Comprar em cada dia e vender {DIAS[DIA_VENDA]}, fodder 84-87, semanas de "
+      f"{CORTE:%d/%m/%Y} a {FIM:%d/%m/%Y}. Intervalo de 95% por bootstrap da mediana.\n")
+    a("| comprar | mediana | intervalo 95% | média aparada 10% | semanas positivas |"
+      "\n|---|---|---|---|---|")
+    fora = {}
+    for d in DIAS_COMPRA:
+        v = semanas(fodder, d, (DIA_VENDA - d) % 7, CORTE, FIM)
+        lo, hi = E.intervalo_bootstrap(v)
+        fora[d] = {"mediana": st.median(v), "ic": [lo, hi], "aparada": aparada(v),
+                   "positivas": sum(x > 0 for x in v), "n": len(v)}
+        a(f"| {DIAS[d]} | {pct(st.median(v))} | {pct(lo)} a {pct(hi)} | {pct(aparada(v))} "
+          f"| {fora[d]['positivas']}/{len(v)} |")
+    a(f"\nSó {DIAS[dc]} → {DIAS[dv]} foi escolhido na 1.ª metade; os outros dias são "
+      "medidos na mesma janela, mas não foram escolhidos antes, e por isso valem menos. "
+      "Os ratings 85-87 que a app recomenda foram escolhidos já a ver a 2.ª metade (o 84 "
+      "saiu por ter sido negativo lá): para eles, isto não é fora da amostra.\n")
+
+    a("**Sensibilidade às datas de corte.** A mesma escolha (melhor par na 1.ª parte, "
+      "medido na 2.ª) com outros cortes:\n")
+    a("| corte | escolhido | mediana depois do corte | semanas positivas |\n|---|---|---|---|")
+    for corte in CORTES_SENSIBILIDADE:
+        c = E.ciclo_semanal(fodder, INICIO, corte - timedelta(days=1))
+        cc, cv = max(c, key=lambda k: c[k][0])
+        v = semanas(fodder, cc, (cv - cc) % 7, corte, FIM)
+        a(f"| {corte:%d/%m/%Y} | {DIAS[cc]} → {DIAS[cv]} | {pct(st.median(v))} "
+          f"| {sum(x > 0 for x in v)}/{len(v)} |")
+    a("\nO par de dias muda com o corte. O que se mantém é a forma: comprar ao "
+      "fim-de-semana, vender a meio da semana.\n")
+
     a("## Promos grandes\n")
     a("Datas em `eventos_fc26.csv`, cada uma confirmada por duas fontes. "
       "E = dia em que a promo abre (sexta, 18h UK). Comprar em E−k, vender em E+h.\n")
@@ -163,20 +217,58 @@ def gerar():
           f"| {pct(E.media([E.roi_evento(series[r], e['data'], 5, 1) for e in eventos]))} |")
     a("")
 
-    a("## O 83\n")
-    s83 = series[83]
-    dias_83 = [d for s in s83 for d in s if INICIO <= d <= FIM]
-    no_minimo = [d for s in s83 for d, v in s.items()
-                 if INICIO <= d <= FIM and v <= min(s.values()) * 1.02]
-    a(f"Em {len(no_minimo) / len(dias_83):.0%} dos dias-carta, o 83 esteve a menos de "
-      f"2% do seu preço mínimo da época. Não sobe com os eventos e perde a taxa "
-      f"em cada operação.\n")
+    # A app dizia "segurar custou 12-17%", que eram ROI de E−5 → E+1, não o
+    # custo de segurar (revisão independente de 01/10/2026).
+    a("## Quanto custa segurar depois de a promo abrir\n")
+    a("Variação de preço, sem taxa, da véspera (quinta) para o dia a seguir à abertura "
+      "(sábado). Semanas de promo grande contra as outras semanas.\n")
+    a("| rating | promo: média | promo: pior | promo: melhor | outras semanas: mediana |"
+      "\n|---|---|---|---|---|")
+    segurar = {}
+    datas_promo = {e["data"] for e in eventos}
+    for r in RATINGS_APP:
+        vp = [x for x in (E.variacao(series[r], e["data"] - timedelta(days=1),
+                                     e["data"] + timedelta(days=1)) for e in eventos)
+              if x is not None]
+        sextas = [INICIO + timedelta(days=(4 - INICIO.weekday()) % 7 + 7 * i) for i in range(60)]
+        vn = [x for x in (E.variacao(series[r], f - timedelta(days=1), f + timedelta(days=1))
+                          for f in sextas if f + timedelta(days=1) <= FIM and f not in datas_promo)
+              if x is not None]
+        segurar[r] = {"promo_media": st.mean(vp), "promo_pior": min(vp), "promo_melhor": max(vp),
+                      "normal_mediana": st.median(vn)}
+        a(f"| {r} | {pct(st.mean(vp))} | {pct(min(vp))} | {pct(max(vp))} | {pct(st.median(vn))} |")
+    a("\nMesmo numa semana normal, segurar de quinta para sábado custa; numa semana de "
+      "promo grande custa mais, e com muita dispersão.\n")
+
+    a("## Ratings no preço mínimo\n")
+    a("Fracção de dias-carta a menos de 2% do preço mínimo da época da própria carta:\n")
+    a("| rating | 1.ª metade | 2.ª metade |\n|---|---|---|")
+    chao = {}
+    for r in D.RATINGS:
+        f1, f2 = (fracao_no_minimo(series[r], i, f) for i, f in
+                  [(INICIO, CORTE - timedelta(days=1)), (CORTE, FIM)])
+        chao[r] = [f1, f2]
+        a(f"| {r} | {f1:.0%} | {f2:.0%} |")
+    a("\nO 83 esteve no mínimo a época toda. O 84 colou ao mínimo na 2.ª metade, e foi "
+      "aí que deixou de dar lucro (na 1.ª metade o ciclo deu-lhe lucro). Um rating no "
+      "mínimo não tem para onde descer, mas também não sobe com a procura: perde a "
+      "taxa em cada operação.\n")
+
+    NUMEROS.write_text(json.dumps({
+        "perfil_semanal": {str(d): p[d] for d in range(7)},
+        "dia_venda": DIA_VENDA,
+        "fora_da_amostra": {str(d): v for d, v in fora.items()},
+        "segurar_depois_da_promo": {str(r): v for r, v in segurar.items()},
+        "fracao_no_minimo": {str(r): v for r, v in chao.items()},
+    }, indent=1, ensure_ascii=False), encoding="utf-8", newline="\n")
 
     a("## Limites\n")
-    a("- **A média diária não é um preço executável.** Comprar ao preço médio de "
-      "domingo e vender ao de quarta assume que se consegue comprar e vender perto "
-      "da média. O histórico de vendas (`get_fc27_sales_history`) mede isso, e "
-      "falta medi-lo.\n"
+    a("- **A média diária pode não ser um preço executável.** No FC 27 as compras "
+      "Buy Now saíram à média horária (`medicao_fc27.md`), mas em cartas que não eram "
+      "o fodder mais barato do rating. Falta medir no fodder.\n"
+      "- **As cartas deste estudo são as primeiras da página do site, não as mais "
+      "baratas do rating.** Dentro de cada rating os preços movem-se juntos, mas não "
+      "está verificado que o fodder mais barato se comporte igual.\n"
       "- **É o FC 26.** O FC 27 pode ter outro dia de rewards e outro calendário. "
       "O ciclo tem de ser confirmado com dados do FC 27 antes de se recomendar.\n"
       "- **Promos grandes: 7 eventos.** Dá para ver o que é consistente (não segurar "

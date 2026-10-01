@@ -25,6 +25,7 @@ escolha.
 
 import csv
 import json
+import random
 import statistics
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -129,3 +130,20 @@ def ciclo_semanal(series, inicio, fim):
             if rois:
                 resultado[(dc, (dc + dur) % 7)] = (statistics.median(rois), len(rois))
     return resultado
+
+
+def variacao(series, dia_a, dia_b):
+    """Mediana, entre cartas, da variação de preço de dia_a para dia_b, sem
+    taxa: é o que se perde ou ganha por segurar, não o ROI de uma operação."""
+    v = [s[dia_b] / s[dia_a] - 1 for s in series if dia_a in s and dia_b in s]
+    return statistics.median(v) if v else None
+
+
+def intervalo_bootstrap(valores, estatistica=statistics.median, n=2000, nivel=0.95, semente=0):
+    """Intervalo de confiança por bootstrap (percentis), reprodutível pela
+    semente: o relatório tem de dar sempre os mesmos números."""
+    rng = random.Random(semente)
+    k = len(valores)
+    est = sorted(estatistica([valores[rng.randrange(k)] for _ in range(k)]) for _ in range(n))
+    cauda = (1 - nivel) / 2
+    return est[int(cauda * n)], est[int((1 - cauda) * n) - 1]
