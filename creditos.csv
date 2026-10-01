@@ -1,2 +1,72 @@
 instante,endpoint,parametros,creditos
 2026-10-01T11:48:00+00:00,teste_inicial,"{""nota"": ""7 chamadas de teste + 1 no painel, confirmadas no painel do parse.bot""}",16
+2026-10-01T11:28:48+00:00,get_players_by_rating,"{""max_rating"": 83, ""min_rating"": 83, ""page"": 1, ""platform"": ""pc"", ""version"": ""gold_rare"", ""year"": ""26""}",5
+2026-10-01T11:28:56+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 205, ""year"": ""26""}",2
+2026-10-01T11:28:59+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 265, ""year"": ""26""}",2
+2026-10-01T11:29:02+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 273, ""year"": ""26""}",2
+2026-10-01T11:29:05+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 279, ""year"": ""26""}",2
+2026-10-01T11:29:08+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 280, ""year"": ""26""}",2
+2026-10-01T11:29:11+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 291, ""year"": ""26""}",2
+2026-10-01T11:29:14+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 316, ""year"": ""26""}",2
+2026-10-01T11:29:18+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 321, ""year"": ""26""}",2
+2026-10-01T11:29:21+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 331, ""year"": ""26""}",2
+2026-10-01T11:29:24+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 381, ""year"": ""26""}",2
+2026-10-01T11:29:46+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 383, ""year"": ""26""}",2
+2026-10-01T11:29:50+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 389, ""year"": ""26""}",2
+2026-10-01T11:29:53+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 392, ""year"": ""26""}",2
+2026-10-01T11:30:08+00:00,get_players_by_rating,"{""max_rating"": 84, ""min_rating"": 84, ""page"": 1, ""platform"": ""pc"", ""version"": ""gold_rare"", ""year"": ""26""}",5
+2026-10-01T11:30:13+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 155, ""year"": ""26""}",2
+2026-10-01T11:30:18+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 179, ""year"": ""26""}",2
+2026-10-01T11:30:23+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 302, ""year"": ""26""}",2
+2026-10-01T11:30:28+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 325, ""year"": ""26""}",2
+2026-10-01T11:30:33+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 330, ""year"": ""26""}",2
+2026-10-01T11:30:37+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 342, ""year"": ""26""}",2
+2026-10-01T11:30:41+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 348, ""year"": ""26""}",2
+2026-10-01T11:30:44+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 355, ""year"": ""26""}",2
+2026-10-01T11:30:47+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 377, ""year"": ""26""}",2
+2026-10-01T11:30:51+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 384, ""year"": ""26""}",2
+2026-10-01T11:30:55+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 417, ""year"": ""26""}",2
+2026-10-01T11:30:58+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 423, ""year"": ""26""}",2
+2026-10-01T11:31:02+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 561, ""year"": ""26""}",2
+2026-10-01T11:31:15+00:00,get_players_by_rating,"{""max_rating"": 85, ""min_rating"": 85, ""page"": 1, ""platform"": ""pc"", ""version"": ""gold_rare"", ""year"": ""26""}",5
+2026-10-01T11:31:19+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 147, ""year"": ""26""}",2
+2026-10-01T11:31:22+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 174, ""year"": ""26""}",2
+2026-10-01T11:31:25+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 206, ""year"": ""26""}",2
+2026-10-01T11:31:29+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 287, ""year"": ""26""}",2
+2026-10-01T11:31:32+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 305, ""year"": ""26""}",2
+2026-10-01T11:31:35+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 309, ""year"": ""26""}",2
+2026-10-01T11:31:38+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 362, ""year"": ""26""}",2
+2026-10-01T11:31:41+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 405, ""year"": ""26""}",2
+2026-10-01T11:31:44+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 413, ""year"": ""26""}",2
+2026-10-01T11:31:47+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 526, ""year"": ""26""}",2
+2026-10-01T11:31:51+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 531, ""year"": ""26""}",2
+2026-10-01T11:31:54+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 536, ""year"": ""26""}",2
+2026-10-01T11:31:57+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 541, ""year"": ""26""}",2
+2026-10-01T11:32:05+00:00,get_players_by_rating,"{""max_rating"": 86, ""min_rating"": 86, ""page"": 1, ""platform"": ""pc"", ""version"": ""gold_rare"", ""year"": ""26""}",5
+2026-10-01T11:32:08+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 238, ""year"": ""26""}",2
+2026-10-01T11:32:11+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 239, ""year"": ""26""}",2
+2026-10-01T11:32:15+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 240, ""year"": ""26""}",2
+2026-10-01T11:32:18+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 242, ""year"": ""26""}",2
+2026-10-01T11:32:22+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 243, ""year"": ""26""}",2
+2026-10-01T11:32:52+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 244, ""year"": ""26""}",2
+2026-10-01T11:32:55+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 245, ""year"": ""26""}",2
+2026-10-01T11:32:58+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 246, ""year"": ""26""}",2
+2026-10-01T11:33:09+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 247, ""year"": ""26""}",2
+2026-10-01T11:33:22+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 248, ""year"": ""26""}",2
+2026-10-01T11:33:34+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 249, ""year"": ""26""}",2
+2026-10-01T11:33:46+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 250, ""year"": ""26""}",2
+2026-10-01T11:33:57+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 251, ""year"": ""26""}",2
+2026-10-01T11:34:14+00:00,get_players_by_rating,"{""max_rating"": 87, ""min_rating"": 87, ""page"": 1, ""platform"": ""pc"", ""version"": ""gold_rare"", ""year"": ""26""}",5
+2026-10-01T11:34:22+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 78, ""year"": ""26""}",2
+2026-10-01T11:34:34+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 84, ""year"": ""26""}",2
+2026-10-01T11:34:46+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 92, ""year"": ""26""}",2
+2026-10-01T11:34:57+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 93, ""year"": ""26""}",2
+2026-10-01T11:35:10+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 98, ""year"": ""26""}",2
+2026-10-01T11:35:25+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 104, ""year"": ""26""}",2
+2026-10-01T11:35:35+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 115, ""year"": ""26""}",2
+2026-10-01T11:35:45+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 121, ""year"": ""26""}",2
+2026-10-01T11:35:58+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 126, ""year"": ""26""}",2
+2026-10-01T11:36:10+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 127, ""year"": ""26""}",2
+2026-10-01T11:36:22+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 193, ""year"": ""26""}",2
+2026-10-01T11:36:34+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 214, ""year"": ""26""}",2
+2026-10-01T11:36:47+00:00,get_player_price_history,"{""graph_type"": ""daily_graph"", ""platform"": ""pc"", ""player_id"": 215, ""year"": ""26""}",2
