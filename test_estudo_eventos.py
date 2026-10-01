@@ -122,3 +122,21 @@ def test_bootstrap_cobre_o_nivel_pedido():
     lo50, hi50 = E.intervalo_bootstrap(v, nivel=0.5)
     lo95, hi95 = E.intervalo_bootstrap(v, nivel=0.95)
     assert lo95 < lo50 < hi50 < hi95
+
+
+def test_referencia_usa_todos_os_dias_de_inicio():
+    # O preço sobe com o dia da semana: cada dia de início dá um ROI diferente,
+    # e a mediana de todos (quinta) não é a das segundas só (D0 é segunda).
+    s = serie(70, lambda d: 100 + 10 * d.weekday())
+    fim = D0 + timedelta(days=69)
+    esperado = statistics.median(
+        E.roi_liquido(s[D0 + timedelta(days=i)], s[D0 + timedelta(days=i + 3)])
+        for i in range(0, 67))
+    assert E.roi_referencia([s], 3, D0, fim) == pytest.approx(esperado)
+
+
+def test_ciclo_semanal_conta_a_janela_que_acaba_no_fim():
+    s = serie(70, lambda d: 100)
+    fim = D0 + timedelta(days=16)  # quarta 22/10: segunda 20/10 → quarta cabe à justa
+    c = E.ciclo_semanal([s], D0, fim)
+    assert c[(0, 2)][1] == 3       # segundas 06/10, 13/10 e 20/10

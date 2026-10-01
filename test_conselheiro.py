@@ -163,3 +163,25 @@ def test_lancamento_dura_os_mesmos_32_dias_que_o_estudo_do_fc26_deixou_de_fora()
     assert (K.INICIO_ESTUDO_FC26 - K.INICIO_MERCADO_FC26).days == 32
     assert K.em_lancamento(datetime(2026, 10, 17, 22, tzinfo=UTC))
     assert not K.em_lancamento(datetime(2026, 10, 18, 0, tzinfo=UTC))
+
+
+def test_noticia_com_mais_de_7_dias_fica_de_fora():
+    agora = DEPOIS_DO_LANCAMENTO
+    n = [{"categoria": "leak", "titulo": "Velha", "publicado_em": agora - timedelta(days=7, hours=12)},
+         {"categoria": "leak", "titulo": "Recente", "publicado_em": agora - timedelta(days=6, hours=12)}]
+    aviso = next(c for c in K.conselhos(agora, 100_000, n) if c.acao == "AVISO")
+    assert "Recente" in aviso.porque and "Velha" not in aviso.porque
+
+
+def test_texto_do_domingo_so_aparece_ao_domingo():
+    sabado = principal(DEPOIS_DO_LANCAMENTO + timedelta(days=5))
+    domingo = principal(DEPOIS_DO_LANCAMENTO + timedelta(days=6))
+    assert "Domingo foi o dia mais barato" not in sabado.porque
+    assert "Domingo foi o dia mais barato" in domingo.porque
+
+
+def test_proxima_promo_usa_o_dia_de_londres_perto_da_meia_noite():
+    # Quinta 22/10 às 23:30 UTC já é sexta 00:30 em Londres: a promo é nesse
+    # mesmo dia às 18h de Londres, e não no sábado.
+    p = K.proxima_promo(datetime(2026, 10, 22, 23, 30, tzinfo=UTC))
+    assert p.astimezone(UTC) == datetime(2026, 10, 23, 17, tzinfo=UTC)
