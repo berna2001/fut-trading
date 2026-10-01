@@ -149,3 +149,19 @@ def test_perfil_horario_em_hora_de_londres_desloca_uma_hora_no_verao():
     em_londres = PF.perfil_horario([s], V.FUSO_DO_SITE)
     assert max(em_utc, key=em_utc.get) == 17
     assert max(em_londres, key=em_londres.get) == 18
+
+
+def test_ida_e_volta_compra_ao_quartil_de_baixo():
+    precos = [90, 95, 100, 100, 105, 110]
+    s = [venda("Oct 1, 10:00 AM", p) for p in precos]
+    q1, med, _ = __import__("statistics").quantiles(precos, n=4)
+    assert V.custo_de_ida_e_volta(s, LIDO)["q1_mediana"] == pytest.approx(0.95 * med / q1 - 1)
+
+
+def test_perfil_horario_usa_janela_centrada():
+    # Subida constante de 1 por hora: a janela de -12 a +11 tem média
+    # p - 0,5, por isso todas as horas saem ligeiramente acima de zero.
+    inicio = datetime(2026, 9, 7, tzinfo=UTC)
+    s = _serie_horaria(6, lambda t: 1000 + (t - inicio).total_seconds() / 3600)
+    p = PF.perfil_horario([s])
+    assert all(v > 0 for v in p.values())

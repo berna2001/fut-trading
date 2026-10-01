@@ -72,7 +72,10 @@ def ler_noticias():
 
 
 def aba_conselheiro():
-    agora = datetime.now(timezone.utc)
+    # FUT_AGORA só para os testes poderem fixar o dia (um sábado, uma sexta
+    # depois da promo); em produção é sempre o relógio.
+    agora = (datetime.fromisoformat(os.environ["FUT_AGORA"]) if "FUT_AGORA" in os.environ
+             else datetime.now(timezone.utc))
     lisboa = agora.astimezone(ZoneInfo("Europe/Lisbon"))
     st.subheader(f"Agora: {K.DIAS[lisboa.weekday()]}, {lisboa:%d/%m %H:%M} (Lisboa)")
     # As notícias só acrescentam avisos: se falharem, os conselhos continuam.

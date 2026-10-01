@@ -102,3 +102,49 @@ def test_noticias_estragadas_nao_levam_as_outras_abas(caso, tmp_path, monkeypatc
     # Só a aba das notícias mostra o erro; os estudos continuam lá.
     assert sum("Esta aba falhou" in e.value for e in at.error) == 1
     assert len(at.expander) > 0
+
+
+SABADO = "2026-11-07T12:00:00+00:00"   # depois do lançamento
+
+
+def test_sabado_a_app_mostra_a_quantia_do_conselheiro(monkeypatch, tmp_path):
+    import conselheiro as K
+    from datetime import datetime
+
+    vazio = tmp_path / "n.csv"
+    vazio.write_text("id,publicado_em,visto_em,fonte,categoria,titulo,link\n", encoding="utf-8")
+    monkeypatch.setenv("FUT_NOTICIAS", str(vazio))
+    monkeypatch.setenv("FUT_AGORA", SABADO)
+    at = correr()
+    entradas = {n.label: n for n in at.number_input}
+    entradas["Saldo actual (coins)"].set_value(50_000)
+    entradas["Já investido neste ciclo (coins)"].set_value(10_000).run()
+    assert any("sábado, 07/11" in h.value for h in at.subheader)
+    compra = next(c.value for c in at.success if "**COMPRAR —" in c.value)
+    q = K.quantias(50_000, 10_000, datetime.fromisoformat(SABADO))
+    for r, v in q.items():
+        assert f"{v:,.0f} em {r}" in compra
+    assert f"total {sum(q.values()):,.0f}" in compra
+
+
+def test_noticia_de_promo_recente_aparece_no_conselheiro(monkeypatch, tmp_path):
+    f = tmp_path / "n.csv"
+    f.write_text("id,publicado_em,visto_em,fonte,categoria,titulo,link\n"
+                 "a,2026-11-05T10:00:00+00:00,2026-11-05T10:00:00+00:00,x,leak,"
+                 "Promo Teste leaked,https://x\n", encoding="utf-8")
+    monkeypatch.setenv("FUT_NOTICIAS", str(f))
+    monkeypatch.setenv("FUT_AGORA", SABADO)
+    at = correr()
+    assert any("Promo Teste leaked" in c.value for c in at.info)
+
+
+def test_plano_so_tem_roi_nos_dias_de_compra(monkeypatch):
+    import conselheiro as K
+
+    monkeypatch.setenv("FUT_AGORA", SABADO)
+    at = correr()
+    plano = at.table[0].value
+    roi = dict(zip(plano["dia"], plano["comprar hoje, vender quarta"]))
+    for dia in ("quarta", "quinta", "sexta"):
+        assert roi[dia] == "—"
+    assert roi["sábado"] == K.pct(K.FORA_DA_AMOSTRA[5]["mediana"])
