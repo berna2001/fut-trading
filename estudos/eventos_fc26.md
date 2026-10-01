@@ -43,6 +43,31 @@ Por rating (sáb → qua):
 | 86 | +18.6% (20/20) | +6.0% (18/25) |
 | 87 | +9.6% (14/20) | +7.1% (15/25) |
 
+## O que a app usa: ROI medido só na 2.ª metade
+
+Comprar em cada dia e vender qua, fodder 84-87, semanas de 16/03/2026 a 13/09/2026. Intervalo de 95% por bootstrap da mediana.
+
+| comprar | mediana | intervalo 95% | média aparada 10% | semanas positivas |
+|---|---|---|---|---|
+| sáb | +4.3% | -0.5% a +11.5% | +7.2% | 17/25 |
+| dom | +6.6% | -0.4% a +14.3% | +9.2% | 17/25 |
+| seg | +2.9% | -1.5% a +8.5% | +5.0% | 16/26 |
+| ter | -0.0% | -2.6% a +8.2% | +2.9% | 13/26 |
+
+Só sáb → qua foi escolhido na 1.ª metade; os outros dias são medidos na mesma janela, mas não foram escolhidos antes, e por isso valem menos. Os ratings 85-87 que a app recomenda foram escolhidos já a ver a 2.ª metade (o 84 saiu por ter sido negativo lá): para eles, isto não é fora da amostra.
+
+**Sensibilidade às datas de corte.** A mesma escolha (melhor par na 1.ª parte, medido na 2.ª) com outros cortes:
+
+| corte | escolhido | mediana depois do corte | semanas positivas |
+|---|---|---|---|
+| 05/01/2026 | sáb → qua | +8.6% | 27/35 |
+| 02/02/2026 | sáb → qua | +7.7% | 23/31 |
+| 16/03/2026 | sáb → qua | +4.3% | 17/25 |
+| 13/04/2026 | dom → qui | +1.5% | 11/21 |
+| 11/05/2026 | sáb → qua | +4.3% | 11/17 |
+
+O par de dias muda com o corte. O que se mantém é a forma: comprar ao fim-de-semana, vender a meio da semana.
+
 ## Promos grandes
 
 Datas em `eventos_fc26.csv`, cada uma confirmada por duas fontes. E = dia em que a promo abre (sexta, 18h UK). Comprar em E−k, vender em E+h.
@@ -75,13 +100,36 @@ A janela escolhida muda com o corte. **Com 7 eventos isto não chega para escolh
 | 86 | +11.3% | -12.2% |
 | 87 | +8.9% | -1.9% |
 
-## O 83
+## Quanto custa segurar depois de a promo abrir
 
-Em 57% dos dias-carta, o 83 esteve a menos de 2% do seu preço mínimo da época. Não sobe com os eventos e perde a taxa em cada operação.
+Variação de preço, sem taxa, da véspera (quinta) para o dia a seguir à abertura (sábado). Semanas de promo grande contra as outras semanas.
+
+| rating | promo: média | promo: pior | promo: melhor | outras semanas: mediana |
+|---|---|---|---|---|
+| 85 | -24.3% | -59.3% | +30.7% | -14.6% |
+| 86 | -21.8% | -50.9% | +22.5% | -13.3% |
+| 87 | -19.5% | -43.2% | +23.3% | -12.6% |
+
+Mesmo numa semana normal, segurar de quinta para sábado custa; numa semana de promo grande custa mais, e com muita dispersão.
+
+## Ratings no preço mínimo
+
+Fracção de dias-carta a menos de 2% do preço mínimo da época da própria carta:
+
+| rating | 1.ª metade | 2.ª metade |
+|---|---|---|
+| 83 | 55% | 58% |
+| 84 | 10% | 37% |
+| 85 | 0% | 4% |
+| 86 | 0% | 5% |
+| 87 | 0% | 1% |
+
+O 83 esteve no mínimo a época toda. O 84 colou ao mínimo na 2.ª metade, e foi aí que deixou de dar lucro (na 1.ª metade o ciclo deu-lhe lucro). Um rating no mínimo não tem para onde descer, mas também não sobe com a procura: perde a taxa em cada operação.
 
 ## Limites
 
-- **A média diária não é um preço executável.** Comprar ao preço médio de domingo e vender ao de quarta assume que se consegue comprar e vender perto da média. O histórico de vendas (`get_fc27_sales_history`) mede isso, e falta medi-lo.
+- **A média diária pode não ser um preço executável.** No FC 27 as compras Buy Now saíram à média horária (`medicao_fc27.md`), mas em cartas que não eram o fodder mais barato do rating. Falta medir no fodder.
+- **As cartas deste estudo são as primeiras da página do site, não as mais baratas do rating.** Dentro de cada rating os preços movem-se juntos, mas não está verificado que o fodder mais barato se comporte igual.
 - **É o FC 26.** O FC 27 pode ter outro dia de rewards e outro calendário. O ciclo tem de ser confirmado com dados do FC 27 antes de se recomendar.
 - **Promos grandes: 7 eventos.** Dá para ver o que é consistente (não segurar depois do lançamento), não para afinar uma janela.
 - **Fuga de informação:** comprar k dias antes de uma promo pressupõe que a data era pública. Para as promos grandes era (calendário e leaks com 1-2 semanas), mas não está medido evento a evento.

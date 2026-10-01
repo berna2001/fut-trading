@@ -1,6 +1,7 @@
 """Testes do estudo de eventos, com séries sintéticas. Não tocam na rede."""
 
 import json
+import statistics
 from datetime import date, timedelta
 
 import pytest
@@ -89,3 +90,35 @@ def test_ler_serie_converte_milissegundos_e_tira_precos_zero(tmp_path):
         {"timestamp": 1758240000000, "price": 0},
     ]}), encoding="utf-8")
     assert E.ler_serie(f) == {date(2025, 9, 18): 900}
+
+
+def test_variacao_e_sem_taxa_e_mediana_entre_cartas():
+    a, b = D0, D0 + timedelta(days=2)
+    series = [{a: 100, b: 80}, {a: 100, b: 90}, {a: 100, b: 130}, {a: 100}]
+    assert E.variacao(series, a, b) == pytest.approx(-0.10)
+    assert E.variacao([{a: 100, b: 100}], a, b) == 0
+    assert E.variacao([{a: 100}], a, b) is None
+
+
+def test_bootstrap_e_reprodutivel_contem_a_mediana_e_estreita_com_mais_dados():
+    poucos = [0.1, -0.05, 0.2, 0.0, 0.08, -0.02, 0.15]
+    lo, hi = E.intervalo_bootstrap(poucos)
+    # Reprodutível: com muitos valores distintos, duas reamostragens sem
+    # semente quase nunca dão o mesmo intervalo; com a semente, dão sempre.
+    distintos = [(i * 7919 % 101) / 1000 for i in range(80)]
+    assert E.intervalo_bootstrap(distintos) == E.intervalo_bootstrap(distintos)
+    assert E.intervalo_bootstrap(distintos) == E.intervalo_bootstrap(distintos, semente=0)
+    assert lo <= statistics.median(poucos) <= hi
+    muitos = poucos * 20
+    lo2, hi2 = E.intervalo_bootstrap(muitos)
+    assert hi2 - lo2 < hi - lo
+    # Valores todos iguais: intervalo de largura zero.
+    assert E.intervalo_bootstrap([0.03] * 10) == (0.03, 0.03)
+
+
+def test_bootstrap_cobre_o_nivel_pedido():
+    # Com nivel=0,5 o intervalo tem de ser mais estreito do que com 0,95.
+    v = [i / 100 for i in range(-20, 30)]
+    lo50, hi50 = E.intervalo_bootstrap(v, nivel=0.5)
+    lo95, hi95 = E.intervalo_bootstrap(v, nivel=0.95)
+    assert lo95 < lo50 < hi50 < hi95
