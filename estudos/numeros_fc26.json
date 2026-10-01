@@ -56,19 +56,25 @@
    "promo_media": -0.2425898551612312,
    "promo_pior": -0.5927587311759052,
    "promo_melhor": 0.30685742476566347,
-   "normal_mediana": -0.14628540858049055
+   "normal_mediana": -0.14628540858049055,
+   "promo_n": 7,
+   "normal_n": 40
   },
   "86": {
    "promo_media": -0.21822028030180132,
    "promo_pior": -0.508695652173913,
    "promo_melhor": 0.2252010723860589,
-   "normal_mediana": -0.1329999508691691
+   "normal_mediana": -0.1329999508691691,
+   "promo_n": 7,
+   "normal_n": 40
   },
   "87": {
    "promo_media": -0.19525435521928666,
    "promo_pior": -0.43230212936922463,
    "promo_melhor": 0.2327790973871735,
-   "normal_mediana": -0.12560768771445496
+   "normal_mediana": -0.12560768771445496,
+   "promo_n": 7,
+   "normal_n": 40
   }
  },
  "fracao_no_minimo": {

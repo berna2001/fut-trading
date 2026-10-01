@@ -93,11 +93,15 @@ def resumo(v):
     return f"{pct(st.median(v))} | {pct(st.mean(v))} | {sum(x > 0 for x in v)}/{len(v)}"
 
 
-def gerar():
-    series = carregar()
+def construir(series, eventos):
+    """O relatório e os números que o conselheiro usa, a partir das séries.
+
+    {rating: [ {date: preço} ]} e a lista de eventos. Não lê nem escreve
+    ficheiros: assim testa-se com séries sintéticas, sem os preços em disco
+    (que não estão no git nem na CI). Devolve (markdown, números).
+    """
     fodder = [s for r in FODDER for s in series[r]]
-    eventos = sorted(E.ler_eventos(Path(__file__).with_name("eventos_fc26.csv")),
-                     key=lambda e: e["data"])
+    eventos = sorted(eventos, key=lambda e: e["data"])
     n_cartas = sum(len(v) for v in series.values())
     L = []
     a = L.append
@@ -237,7 +241,7 @@ def gerar():
                           for f in sextas if f + timedelta(days=1) <= FIM and f not in datas_promo)
               if x is not None]
         segurar[r] = {"promo_media": st.mean(vp), "promo_pior": min(vp), "promo_melhor": max(vp),
-                      "normal_mediana": st.median(vn)}
+                      "normal_mediana": st.median(vn), "promo_n": len(vp), "normal_n": len(vn)}
         a(f"| {r} | {pct(st.mean(vp))} | {pct(min(vp))} | {pct(max(vp))} | {pct(st.median(vn))} |")
     a("\nMesmo numa semana normal, segurar de quinta para sábado custa; numa semana de "
       "promo grande custa mais, e com muita dispersão.\n")
@@ -256,13 +260,13 @@ def gerar():
       "mínimo não tem para onde descer, mas também não sobe com a procura: perde a "
       "taxa em cada operação.\n")
 
-    NUMEROS.write_text(json.dumps({
+    numeros = {
         "perfil_semanal": {str(d): p[d] for d in range(7)},
         "dia_venda": DIA_VENDA,
         "fora_da_amostra": {str(d): v for d, v in fora.items()},
         "segurar_depois_da_promo": {str(r): v for r, v in segurar.items()},
         "fracao_no_minimo": {str(r): v for r, v in chao.items()},
-    }, indent=1, ensure_ascii=False), encoding="utf-8", newline="\n")
+    }
 
     a("## Limites\n")
     a("- **A média diária pode não ser um preço executável.** No FC 27 as compras "
@@ -280,8 +284,16 @@ def gerar():
       "- **Fuga de informação:** comprar k dias antes de uma promo pressupõe que a "
       "data era pública. Para as promos grandes era (calendário e leaks com 1-2 "
       "semanas), mas não está medido evento a evento.\n")
+    return "\n".join(L), numeros
+
+
+def gerar():
+    eventos = E.ler_eventos(Path(__file__).with_name("eventos_fc26.csv"))
+    texto, numeros = construir(carregar(), eventos)
     SAIDA.parent.mkdir(exist_ok=True)
-    SAIDA.write_text("\n".join(L), encoding="utf-8", newline="\n")
+    SAIDA.write_text(texto, encoding="utf-8", newline="\n")
+    NUMEROS.write_text(json.dumps(numeros, indent=1, ensure_ascii=False),
+                       encoding="utf-8", newline="\n")
     return SAIDA
 
 
