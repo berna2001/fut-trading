@@ -119,3 +119,42 @@ def test_custos_batem_com_o_agents_md():
                      "get_fc27_sbcs_list"]:
         linha = next(l for l in texto.splitlines() if f"`{endpoint}`" in l)
         assert linha.rstrip(" |").endswith(str(P.CUSTO[endpoint])), endpoint
+
+
+def _erro_429(retry_after=7):
+    corpo = json.dumps({"error": {"error": "Rate limit exceeded", "retry_after": retry_after}})
+    return P.urllib.error.HTTPError("u", 429, "Too Many Requests", {}, io.BytesIO(corpo.encode()))
+
+
+def test_429_espera_o_que_o_servidor_manda_e_tenta_outra_vez(tmp_path, monkeypatch):
+    livro = tmp_path / "creditos.csv"
+    respostas = [_erro_429(7), _erro_429(3),
+                 _Resposta({"status": "success", "data": {"ok": 1}}, "2")]
+
+    def urlopen(pedido, timeout):
+        r = respostas.pop(0)
+        if isinstance(r, Exception):
+            raise r
+        return r
+
+    monkeypatch.setenv("PARSE_API_KEY", "pmx_teste")
+    monkeypatch.setattr(P.urllib.request, "urlopen", urlopen)
+    esperas = []
+    dados = P.chamar("get_player_price_history", livro=livro, _dormir=esperas.append, player_id=1)
+    assert dados == {"ok": 1}
+    assert esperas == [8, 4]
+    # Os 429 não cobraram (sem cabeçalho): só o pedido que passou conta.
+    assert P.gasto_no_mes(livro) == 2
+
+
+def test_429_sem_fim_acaba_em_erro(tmp_path, monkeypatch):
+    def urlopen(pedido, timeout):
+        raise _erro_429(1)
+
+    monkeypatch.setenv("PARSE_API_KEY", "pmx_teste")
+    monkeypatch.setattr(P.urllib.request, "urlopen", urlopen)
+    esperas = []
+    with pytest.raises(P.ErroParse):
+        P.chamar("get_player_price_history", livro=tmp_path / "c.csv",
+                 _dormir=esperas.append, player_id=1)
+    assert len(esperas) == P.TENTATIVAS_429 - 1
