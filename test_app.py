@@ -20,10 +20,10 @@ def correr():
     return at
 
 
-def test_app_corre_sem_excepcoes_e_tem_as_tres_abas():
+def test_app_corre_sem_excepcoes_e_tem_as_quatro_abas():
     at = correr()
     assert not at.exception
-    assert [t.label for t in at.tabs] == ["Notícias", "Calculadora", "Estudos"]
+    assert [t.label for t in at.tabs] == ["Conselheiro", "Notícias", "Calculadora", "Estudos"]
 
 
 def test_noticias_aparecem_e_o_filtro_as_reduz():
@@ -62,3 +62,13 @@ def test_estudos_tem_um_bloco_por_relatorio():
     at = correr()
     relatorios = list(Path(__file__).with_name("estudos").glob("*.md"))
     assert len(at.expander) == len(relatorios) > 0
+
+
+def test_conselheiro_da_uma_accao_de_mercado_e_a_regra_de_evitar():
+    at = correr()
+    caixas = [c.value for grupo in (at.success, at.warning, at.info, at.error) for c in grupo]
+    accoes = {"COMPRAR", "VENDER", "ESPERAR"}
+    assert sum(any(f"**{a} —" in c for a in accoes) for c in caixas) == 1
+    assert any("**EVITAR — Ratings 83 e 84**" in c for c in caixas)
+    # O plano da semana tem os sete dias.
+    assert len(at.table[0].value) == 7
