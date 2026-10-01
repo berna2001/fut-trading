@@ -1,10 +1,16 @@
-"""App do fut-trading: notícias que mexem no mercado, estudos e calculadora.
+"""App do fut-trading: conselheiro, notícias que mexem no mercado, calculadora e estudos.
 
-Lê só ficheiros do repositório (noticias.csv, estudos/*.md), que as Actions
+Lê só ficheiros do repositório (noticias.csv, estudos/), que as Actions
 mantêm actualizados. Não chama o parse.bot nem precisa de chave nenhuma, e
 nunca toca na conta EA: o bot aconselha, não opera.
+
+Cada aba corre dentro do seu próprio try. Uma falha numa aba escreve o erro
+nessa aba e não leva as outras (lição do bet, repetida aqui e apanhada pela
+revisão independente de 01/10/2026: um noticias.csv vazio deitava a app
+inteira abaixo, calculadora incluída).
 """
 
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -16,12 +22,22 @@ import calculadora as C
 import conselheiro as K
 
 RAIZ = Path(__file__).parent
+# Variável de ambiente só para os testes poderem apontar a um ficheiro
+# estragado; em produção é sempre o noticias.csv do repositório.
+NOTICIAS = Path(os.environ.get("FUT_NOTICIAS", RAIZ / "noticias.csv"))
 CATEGORIAS = {
     "leak": "Leak",
     "sbc": "SBC",
     "totw": "TOTW",
     "evolucao": "Evolução",
     "promo": "Promo",
+}
+CAIXA = {
+    "COMPRAR": st.success,
+    "VENDER": st.warning,
+    "ESPERAR": st.info,
+    "EVITAR": st.error,
+    "AVISO": st.info,
 }
 
 st.set_page_config(page_title="FUT Trading — PC", page_icon="⚽", layout="wide")
@@ -40,10 +56,14 @@ with st.sidebar:
 
 
 def ler_noticias():
-    f = RAIZ / "noticias.csv"
-    if not f.exists():
+    if not NOTICIAS.exists():
         return pd.DataFrame(columns=["publicado_em", "categoria", "titulo", "link"])
-    df = pd.read_csv(f)
+    df = pd.read_csv(NOTICIAS)
+    # Sem isto, um ficheiro sem "categoria" lia-se bem e rebentava depois,
+    # dentro do conselheiro, levando a aba inteira (apanhado pelo teste).
+    falta = {"publicado_em", "categoria", "titulo", "link"} - set(df.columns)
+    if falta:
+        raise ValueError(f"faltam colunas no noticias.csv: {sorted(falta)}")
     # format="ISO8601": os instantes vêm com fuso ("+00:00"). Sem formato, o
     # pandas adivinha e avisa — e no bet um aviso destes escondia um erro de
     # datas.
@@ -51,23 +71,17 @@ def ler_noticias():
     return df.sort_values("publicado_em", ascending=False)
 
 
-aba_conselho, aba_noticias, aba_calc, aba_estudos = st.tabs(
-    ["Conselheiro", "Notícias", "Calculadora", "Estudos"]
-)
-
-CAIXA = {
-    "COMPRAR": st.success,
-    "VENDER": st.warning,
-    "ESPERAR": st.info,
-    "EVITAR": st.error,
-    "AVISO": st.info,
-}
-
-with aba_conselho:
+def aba_conselheiro():
     agora = datetime.now(timezone.utc)
     lisboa = agora.astimezone(ZoneInfo("Europe/Lisbon"))
     st.subheader(f"Agora: {K.DIAS[lisboa.weekday()]}, {lisboa:%d/%m %H:%M} (Lisboa)")
-    noticias = ler_noticias().to_dict("records")
+    # As notícias só acrescentam avisos: se falharem, os conselhos continuam.
+    try:
+        noticias = ler_noticias().to_dict("records")
+    except Exception as e:
+        noticias = []
+        st.warning(f"Não consegui ler as notícias ({type(e).__name__}); "
+                   "os conselhos abaixo não incluem avisos de promos.")
     for c in K.conselhos(agora, saldo, noticias, investido_no_ciclo=investido):
         # Dois espaços antes do \n: quebra de linha em Markdown.
         linhas = [f"**{c.acao} — {c.o_que}**", f"*Quando:* {c.quando}", c.porque]
@@ -96,16 +110,15 @@ with aba_conselho:
             return "—", "—"
         return K.pct(f["mediana"]), f"{K.pct(f['ic'][0])} a {K.pct(f['ic'][1])}"
 
-    plano = pd.DataFrame({
+    st.table(pd.DataFrame({
         "dia": K.DIAS,
         "preço face à média da semana": [K.pct(K.PERFIL_FC26[d]) for d in range(7)],
         "comprar hoje, vender quarta": [roi(d)[0] for d in range(7)],
         "intervalo 95%": [roi(d)[1] for d in range(7)],
-    })
-    st.table(plano)
+    }))
 
 
-with aba_noticias:
+def aba_noticias():
     df = ler_noticias()
     escolhidas = st.multiselect(
         "Categorias", list(CATEGORIAS), default=list(CATEGORIAS),
@@ -122,7 +135,8 @@ with aba_noticias:
             f"**{rotulo}** · {n['publicado_em']:%d/%m %H:%M} — [{n['titulo']}]({n['link']})"
         )
 
-with aba_calc:
+
+def aba_calculadora():
     st.subheader("Quanto ganho nesta operação?")
     c1, c2, c3 = st.columns(3)
     compra = c1.number_input("Preço de compra", min_value=1, value=4_000, step=50)
@@ -148,17 +162,37 @@ with aba_calc:
         st.warning("A quantidade passa o saldo actual.")
     st.caption(
         "A quantidade a arriscar numa carta não está medida, por isso a calculadora não "
-        "a impõe. Uma referência medida: as cartas 86 do FC 27 venderam entre 34 e 385 "
-        "cópias por hora a 01/10/2026 (ver Estudos)."
+        "a impõe. Uma referência: as cartas 86 do FC 27 medidas venderam entre 34 e 385 "
+        "cópias por hora a 01/10/2026, mas não eram o fodder mais barato (ver Estudos)."
     )
 
-with aba_estudos:
+
+def aba_estudos():
+    # Antes dizia "ainda não são recomendações", ao lado de um Conselheiro que
+    # recomenda (achado 9 da revisão de 01/10/2026).
     st.caption(
-        "Resultados medidos, com a taxa descontada. Ainda não são recomendações: o ciclo "
-        "semanal do FC 26 tem de ser confirmado no FC 27."
+        "As medições em que o Conselheiro se baseia, com a taxa descontada e os limites "
+        "de cada uma. O ciclo semanal é do FC 26 e ainda não foi confirmado no FC 27: é "
+        "por isso que as compras têm confiança média ou baixa."
     )
     for f in sorted((RAIZ / "estudos").glob("*.md")):
         texto = f.read_text(encoding="utf-8")
         titulo = texto.splitlines()[0].lstrip("# ").strip()
         with st.expander(titulo, expanded=False):
             st.markdown(texto.split("\n", 1)[1])
+
+
+ABAS = {
+    "Conselheiro": aba_conselheiro,
+    "Notícias": aba_noticias,
+    "Calculadora": aba_calculadora,
+    "Estudos": aba_estudos,
+}
+for aba, desenhar in zip(st.tabs(list(ABAS)), ABAS.values()):
+    with aba:
+        try:
+            desenhar()
+        except Exception as e:
+            # Nunca st.stop(): pararia o script e levava as abas seguintes.
+            st.error(f"Esta aba falhou ({type(e).__name__}: {e}). As outras continuam a "
+                     "funcionar.")
