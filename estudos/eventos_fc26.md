@@ -2,7 +2,7 @@
 
 *Gerado por `relatorio_eventos.py`. Não editar à mão.*
 
-**Dados:** histórico diário de PC (média diária do FUTBIN, via parse.bot) de 65 cartas gold rare normais, 5 ratings (83-87), de 20/10/2025 a 13/09/2026. As 4 primeiras semanas (crash de lançamento) ficam de fora.
+**Dados:** histórico diário de PC (média diária do FUTBIN, via parse.bot) de 65 cartas gold rare normais, 5 ratings (83-87), de 20/10/2025 a 13/09/2026. Os primeiros 32 dias (crash de lançamento) ficam de fora.
 
 **ROI sempre líquido da taxa de 5%:** `0,95 × venda / compra − 1`. Por cada dia, a mediana entre as cartas.
 
@@ -88,7 +88,7 @@ Datas em `eventos_fc26.csv`, cada uma confirmada por duas fontes. E = dia em que
 - Escolhendo nos primeiros 4 eventos: E−5 → E+7 (+12.8% no treino); nos 3 seguintes: +16.4%, -3.2%, +58.7% (média +24.0%).
 - Escolhendo nos primeiros 5 eventos: E−5 → E-1 (+14.3% no treino); nos 2 seguintes: -8.8%, +15.8% (média +3.5%).
 
-**As promos grandes acrescentam pouco ao ciclo semanal.** E−5 → véspera é domingo → quinta. Numa semana qualquer, domingo → quinta dá mediana +11.3% e média +13.1% (46 semanas); nas 7 semanas de promo grande, mediana +10.0% e média +11.2%.
+**As promos grandes acrescentam pouco ao ciclo semanal.** E−5 → véspera é domingo → quinta. Em todas as semanas, incluindo as de promo, domingo → quinta dá mediana +11.3% e média +13.1% (46 semanas); nas 7 semanas de promo grande, mediana +10.0% e média +11.2%.
 
 A janela escolhida muda com o corte. **Com 7 eventos isto não chega para escolher uma janela de compra.** O que é estável é o que acontece depois do lançamento:
 
@@ -132,4 +132,5 @@ O 83 esteve no mínimo a época toda. O 84 colou ao mínimo na 2.ª metade, e fo
 - **As cartas deste estudo são as primeiras da página do site, não as mais baratas do rating.** Dentro de cada rating os preços movem-se juntos, mas não está verificado que o fodder mais barato se comporte igual.
 - **É o FC 26.** O FC 27 pode ter outro dia de rewards e outro calendário. O ciclo tem de ser confirmado com dados do FC 27 antes de se recomendar.
 - **Promos grandes: 7 eventos.** Dá para ver o que é consistente (não segurar depois do lançamento), não para afinar uma janela.
+- **Ultimate Scream (24/10/2025):** as janelas que compram mais de 4 dias antes começam antes de 20/10/2025, ainda dentro do crash de lançamento.
 - **Fuga de informação:** comprar k dias antes de uma promo pressupõe que a data era pública. Para as promos grandes era (calendário e leaks com 1-2 semanas), mas não está medido evento a evento.

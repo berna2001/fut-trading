@@ -55,11 +55,14 @@ RATINGS = [85, 86, 87]
 FRACCAO_MAXIMA = 0.70
 FRACCAO_LANCAMENTO = 0.35
 
-# O estudo do FC 26 deixou de fora as primeiras ~5 semanas (crash de
-# lançamento). O mercado do FC 27 abriu a 16/09/2026 (primeiro ponto do
-# histórico diário do FUTBIN), por isso o aviso dura até à mesma distância.
+# O estudo do FC 26 começa a 20/10/2025, 32 dias depois do primeiro ponto do
+# histórico diário (18/09/2025): o crash de lançamento ficou de fora. O
+# mercado do FC 27 abriu a 16/09/2026 (primeiro ponto do histórico diário), e
+# o aviso dura a mesma distância. Eram 34 dias, sem razão (revisão de 01/10).
+INICIO_MERCADO_FC26 = date(2025, 9, 18)
+INICIO_ESTUDO_FC26 = date(2025, 10, 20)
 INICIO_FC27 = date(2026, 9, 16)
-FIM_LANCAMENTO = INICIO_FC27 + timedelta(days=34)
+FIM_LANCAMENTO = INICIO_FC27 + (INICIO_ESTUDO_FC26 - INICIO_MERCADO_FC26)
 
 
 @dataclass

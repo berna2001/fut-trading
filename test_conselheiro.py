@@ -157,3 +157,9 @@ def test_numeros_do_json_batem_com_o_relatorio():
         linha = next(l for l in linhas if l.startswith(f"| {nome} | ") and "/2" in l)
         mediana = float(re.findall(r"([+-]\d+\.\d)%", linha)[0]) / 100
         assert mediana == pytest.approx(K.FORA_DA_AMOSTRA[d]["mediana"], abs=5e-4)
+
+
+def test_lancamento_dura_os_mesmos_32_dias_que_o_estudo_do_fc26_deixou_de_fora():
+    assert (K.INICIO_ESTUDO_FC26 - K.INICIO_MERCADO_FC26).days == 32
+    assert K.em_lancamento(datetime(2026, 10, 17, 22, tzinfo=UTC))
+    assert not K.em_lancamento(datetime(2026, 10, 18, 0, tzinfo=UTC))
