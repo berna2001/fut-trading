@@ -4,10 +4,9 @@ on:
   schedule:
     # De 2 em 2 horas. Um leak dá normalmente dias de antecedência (o da
     # Destined for Glory Team 2 saiu a 28/09 para uma promo de 02/10), por
-    # isso 2 horas de atraso na recolha custam pouco. Custo em minutos do
-    # GitHub Actions: ~12 execuções/dia × ~1 min = ~360 min/mês, dentro dos
-    # o repositório é público desde 01/10/2026, e aí os minutos das Actions
-    # são grátis sem limite. (Dizia "2000 de um repositório privado".)
+    # isso 2 horas de atraso na recolha custam pouco. ~12 execuções/dia de
+    # ~1 min; o repositório é público desde 01/10/2026, e aí os minutos das
+    # Actions são grátis sem limite.
     # Minutos fora da hora certa: é na hora certa que o GitHub mais atrasa.
     - cron: "23 */2 * * *"
   workflow_dispatch:
