@@ -7,6 +7,8 @@ requirements.txt e a app rebentou em produção sem nenhum teste dar por isso.
 
 from pathlib import Path
 
+import pytest
+
 # Import directo e não pytest.importorskip: sem o streamlit no
 # requirements.txt, a CI tem de FALHAR aqui, não saltar os testes em silêncio.
 import streamlit.testing.v1 as st_testing
@@ -72,3 +74,31 @@ def test_conselheiro_da_uma_accao_de_mercado_e_a_regra_de_evitar():
     assert any("**EVITAR — Ratings cujo fodder está no preço mínimo" in c for c in caixas)
     # O plano da semana tem os sete dias.
     assert len(at.table[0].value) == 7
+
+
+ESTRAGADOS = {
+    "vazio": "",
+    "sem_categoria": "id,publicado_em,titulo,link\n1,2026-10-01T10:00:00+00:00,x,y\n",
+    "data_invalida": "id,publicado_em,visto_em,fonte,categoria,titulo,link\n"
+                     "1,ontem,ontem,f,leak,x,y\n",
+}
+
+
+@pytest.mark.parametrize("caso", list(ESTRAGADOS))
+def test_noticias_estragadas_nao_levam_as_outras_abas(caso, tmp_path, monkeypatch):
+    # Revisão de 01/10/2026: com estes três ficheiros a app inteira parava no
+    # primeiro separador e a calculadora ficava sem métricas.
+    f = tmp_path / "noticias.csv"
+    f.write_text(ESTRAGADOS[caso], encoding="utf-8")
+    monkeypatch.setenv("FUT_NOTICIAS", str(f))
+    at = correr()
+    assert not at.exception
+    # Calculadora intacta.
+    assert len(at.metric) == 4
+    # Conselheiro intacto: dá a acção do dia e avisa que as notícias falharam.
+    caixas = [c.value for grupo in (at.success, at.warning, at.info, at.error) for c in grupo]
+    assert sum(any(f"**{a} —" in c for a in ("COMPRAR", "VENDER", "ESPERAR")) for c in caixas) == 1
+    assert any("Não consegui ler as notícias" in w.value for w in at.warning)
+    # Só a aba das notícias mostra o erro; os estudos continuam lá.
+    assert sum("Esta aba falhou" in e.value for e in at.error) == 1
+    assert len(at.expander) > 0
