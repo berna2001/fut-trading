@@ -1,0 +1,46 @@
+#!/bin/sh
+# Recusa empurrar para main.
+#
+# Existe por causa de um acidente concreto: uma crase dentro de aspas duplas
+# no corpo de um `gh pr create` fez o bash executar o comando que estava a ser
+# citado, e esse comando era `git push origin HEAD:main`. Dois commits de um
+# ramo foram parar a main sem PR e sem revisao.
+#
+# A proteccao de ramo do GitHub resolveria isto do lado do servidor, mas exige
+# GitHub Pro em repositorios privados. Isto resolve do lado de ca, que alias e
+# onde o erro aconteceu.
+#
+# Nao afecta a GitHub Action: ela corre noutra maquina, com o seu proprio
+# clone, e nao ve estes hooks. Continua a commitar o registo diario em main,
+# que e o unico caminho legitimo para main sem PR.
+#
+# Para o merge de um PR usa-se `gh pr merge`, que acontece no servidor e nao
+# passa por aqui. Se alguma vez for mesmo preciso empurrar main a mao:
+#
+#     PERMITIR_PUSH_MAIN=1 git push ...
+#
+# e escreve porque na mensagem, porque nao devia ter sido preciso.
+
+if [ "$PERMITIR_PUSH_MAIN" = "1" ]; then
+    exit 0
+fi
+
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+    case "$remote_ref" in
+        refs/heads/main)
+            echo "" >&2
+            echo "  RECUSADO: push directo para main." >&2
+            echo "" >&2
+            echo "  Neste repositorio nada entra em main sem ramo e pull" >&2
+            echo "  request. Se estas a ler isto sem ter pedido um push a" >&2
+            echo "  main, alguma coisa o correu por ti — foi assim que dois" >&2
+            echo "  commits entraram sem revisao a 20/08/2026." >&2
+            echo "" >&2
+            echo "  Para integrar: abre um PR e usa 'gh pr merge'." >&2
+            echo "" >&2
+            exit 1
+            ;;
+    esac
+done
+
+exit 0

@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # Só cancela execuções de pull requests: em main cada commit fica com o seu
+  # próprio veredicto (lição do projecto bet).
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install pytest pyyaml
+
+      - name: Testes
+        # Sem nome de ficheiro: o pytest descobre tudo o que se chame test_*.py.
+        # Saída 5 é "nenhum teste encontrado", o estado legítimo antes do
+        # primeiro módulo. Qualquer outra saída diferente de zero falha.
+        run: |
+          set +e
+          python -m pytest -q -W "error::UserWarning"
+          s=$?
+          if [ $s -eq 5 ]; then echo "ainda sem testes"; exit 0; fi
+          exit $s
+
+      - name: O travão contra push para main está inteiro?
+        # CORRE o hook, não o lê à procura de palavras. No bet, um grep aceitou
+        # um hook com `exit 0` na primeira linha.
+        run: |
+          test -f .githooks/pre-push || {
+            echo "O .githooks/pre-push desapareceu."; exit 1; }
+
+          para_main='refs/heads/x a refs/heads/main b'
+          para_ramo='refs/heads/x a refs/heads/outro b'
+
+          if echo "$para_main" | sh .githooks/pre-push >/dev/null 2>&1; then
+            echo "O hook DEIXOU PASSAR um push para main."; exit 1
+          fi
+
+          if ! echo "$para_ramo" | sh .githooks/pre-push >/dev/null 2>&1; then
+            echo "O hook bloqueia ramos normais, o que não devia."; exit 1
+          fi
+
+          echo "  hook a bloquear main e a deixar passar ramos"
+
+      - name: As workflows são YAML válido?
+        # No bet, um `: ` num `run:` de uma linha partiu uma workflow e a CI deu
+        # verde, porque testava o código e nunca os ficheiros que o lançam.
+        run: |
+          python - <<'PY'
+          import pathlib, sys, yaml
+          mau = 0
+          for f in sorted(pathlib.Path(".github/workflows").glob("*.yml")):
+              try:
+                  d = yaml.safe_load(f.read_text(encoding="utf-8"))
+                  gatilhos = d.get(True, d.get("on"))
+                  assert d.get("name"), "sem name"
+                  assert gatilhos, "sem gatilhos"
+                  assert d.get("jobs"), "sem jobs"
+                  print(f"  {f.name}: {d['name']!r}, gatilhos {list(gatilhos)}")
+              except Exception as e:
+                  mau += 1
+                  print(f"  {f.name}: FALHA {type(e).__name__}: {e}")
+          sys.exit(1 if mau else 0)
+          PY
