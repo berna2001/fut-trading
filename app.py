@@ -5,12 +5,15 @@ mantêm actualizados. Não chama o parse.bot nem precisa de chave nenhuma, e
 nunca toca na conta EA: o bot aconselha, não opera.
 """
 
+from datetime import datetime, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 import streamlit as st
 
 import calculadora as C
+import conselheiro as K
 
 RAIZ = Path(__file__).parent
 CATEGORIAS = {
@@ -42,7 +45,49 @@ def ler_noticias():
     return df.sort_values("publicado_em", ascending=False)
 
 
-aba_noticias, aba_calc, aba_estudos = st.tabs(["Notícias", "Calculadora", "Estudos"])
+aba_conselho, aba_noticias, aba_calc, aba_estudos = st.tabs(
+    ["Conselheiro", "Notícias", "Calculadora", "Estudos"]
+)
+
+CAIXA = {
+    "COMPRAR": st.success,
+    "VENDER": st.warning,
+    "ESPERAR": st.info,
+    "EVITAR": st.error,
+    "AVISO": st.info,
+}
+
+with aba_conselho:
+    agora = datetime.now(timezone.utc)
+    lisboa = agora.astimezone(ZoneInfo("Europe/Lisbon"))
+    st.subheader(f"Agora: {K.DIAS[lisboa.weekday()]}, {lisboa:%d/%m %H:%M} (Lisboa)")
+    noticias = ler_noticias().to_dict("records")
+    for c in K.conselhos(agora, saldo, noticias):
+        # Dois espaços antes do \n: quebra de linha em Markdown.
+        linhas = [f"**{c.acao} — {c.o_que}**", f"*Quando:* {c.quando}", c.porque]
+        if c.quantia is not None:
+            por_rating = ", ".join(f"{v:,.0f} em {r}" for r, v in K.quantias(saldo).items())
+            linhas.append(
+                f"*Quanto:* {por_rating} (total {c.quantia:,.0f}, "
+                f"{K.FRACCAO_MAXIMA:.0%} do saldo; o resto fica de reserva)"
+            )
+        linhas.append(f"*Confiança:* {c.confianca}")
+        CAIXA[c.acao]("  \n".join(linhas))
+
+    st.markdown("#### Plano da semana")
+    st.caption(
+        "Pelo perfil do FC 26: ROI líquido de comprar em cada dia e vender na quarta. "
+        "Vender sempre antes de sexta às 18h de Londres, quando abre a promo."
+    )
+    plano = pd.DataFrame({
+        "dia": K.DIAS,
+        "preço face à média da semana": [f"{K.PERFIL_FC26[d] * 100:+.1f}%" for d in range(7)],
+        "comprar hoje, vender quarta": [
+            f"{K.roi_esperado(d) * 100:+.1f}%" if d not in (2, 3, 4) else "—" for d in range(7)
+        ],
+    })
+    st.table(plano)
+
 
 with aba_noticias:
     df = ler_noticias()

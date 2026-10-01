@@ -9,3 +9,7 @@ streamlit>=1.28
 # pandas 2.0: primeira em que to_datetime aceita format="ISO8601". Na 1.5.3 a
 # palavra aparece só num comentário.
 pandas>=2.0
+# O conselheiro usa zoneinfo("Europe/London") para a hora das promos (18h de
+# Londres = 17h UTC no Verao, 18h no Inverno). O Linux traz a base de fusos;
+# o Windows nao, e sem isto o zoneinfo rebenta com ZoneInfoNotFoundError.
+tzdata
