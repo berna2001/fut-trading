@@ -8,17 +8,22 @@ sempre "cara" só por vir antes, e a janela centrada tira isso.
 """
 
 import statistics as st
-from datetime import timedelta
+from datetime import timedelta, timezone
 
 
-def perfil_horario(series):
-    """{hora UTC: desvio mediano face à média das 24 h centradas}."""
+def perfil_horario(series, fuso=timezone.utc):
+    """{hora no fuso dado: desvio mediano face à média das 24 h centradas}.
+
+    Em hora de Londres por omissão no relatório: o pico de preço coincide com
+    a abertura das promos, às 18h de Londres, que em UTC muda com a hora de
+    Verão (revisão independente de 01/10/2026).
+    """
     desvios = {h: [] for h in range(24)}
     for s in series:
         for t, p in s.items():
             janela = [s.get(t + timedelta(hours=k)) for k in range(-12, 12)]
             if all(janela):
-                desvios[t.hour].append(p / st.mean(janela) - 1)
+                desvios[t.astimezone(fuso).hour].append(p / st.mean(janela) - 1)
     return {h: st.median(v) for h, v in desvios.items() if v}
 
 
