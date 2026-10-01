@@ -148,3 +148,36 @@ def test_plano_so_tem_roi_nos_dias_de_compra(monkeypatch):
     for dia in ("quarta", "quinta", "sexta"):
         assert roi[dia] == "—"
     assert roi["sábado"] == K.pct(K.FORA_DA_AMOSTRA[5]["mediana"])
+
+
+def test_noticias_ao_vivo_aparecem_sem_estarem_no_arquivo(monkeypatch, tmp_path):
+    # A recolha agendada chega com horas de atraso; a app lê os RSS ao vivo.
+    import noticias as N
+
+    arquivo = tmp_path / "n.csv"
+    arquivo.write_text("id,publicado_em,visto_em,fonte,categoria,titulo,link\n", encoding="utf-8")
+    rss = ("<rss><channel><item><title>FC 27 Promo Ao Vivo leaked</title><link>https://x</link>"
+           "<pubDate>Thu, 05 Nov 2026 10:00:00 +0000</pubDate></item></channel></rss>")
+    monkeypatch.setattr(N, "descarregar", lambda url: rss)
+    monkeypatch.setenv("FUT_AO_VIVO", "1")
+    monkeypatch.setenv("FUT_NOTICIAS", str(arquivo))
+    monkeypatch.setenv("FUT_AGORA", SABADO)
+    at = correr()
+    assert not at.exception
+    assert any("FC 27 Promo Ao Vivo leaked" in c.value for c in at.info)       # conselheiro
+    assert any("FC 27 Promo Ao Vivo leaked" in m.value for m in at.markdown)   # aba notícias
+    assert any("actualizado às" in c.value for c in at.caption)
+    # E o arquivo não foi tocado.
+    assert arquivo.read_text(encoding="utf-8").count("\n") == 1
+
+
+def test_sem_leitura_ao_vivo_nao_vai_a_rede(monkeypatch):
+    import noticias as N
+
+    def proibido(url):
+        raise AssertionError("foi à rede")
+
+    monkeypatch.setattr(N, "descarregar", proibido)
+    at = correr()   # FUT_AO_VIVO=0 pelo conftest
+    assert not at.exception
+    assert not any("Esta aba falhou" in e.value for e in at.error)
