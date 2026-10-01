@@ -30,7 +30,13 @@ st.caption("Conselheiro de mercado. Não compra nem vende nada: as operações f
 
 with st.sidebar:
     saldo = st.number_input("Saldo actual (coins)", min_value=0, value=100_000, step=1_000)
-    st.caption("Fica só nesta sessão. Actualiza-o depois de cada compra ou venda.")
+    investido = st.number_input(
+        "Já investido neste ciclo (coins)", min_value=0, value=0, step=1_000,
+        help="O que gastaste em compras desde sábado e ainda não vendeste, ao preço de "
+             "compra. O tecto do conselheiro é sobre o capital do ciclo (saldo + isto), "
+             "não sobre o saldo do dia.",
+    )
+    st.caption("Fica só nesta sessão. Actualiza os dois depois de cada compra ou venda.")
 
 
 def ler_noticias():
@@ -62,29 +68,39 @@ with aba_conselho:
     lisboa = agora.astimezone(ZoneInfo("Europe/Lisbon"))
     st.subheader(f"Agora: {K.DIAS[lisboa.weekday()]}, {lisboa:%d/%m %H:%M} (Lisboa)")
     noticias = ler_noticias().to_dict("records")
-    for c in K.conselhos(agora, saldo, noticias):
+    for c in K.conselhos(agora, saldo, noticias, investido_no_ciclo=investido):
         # Dois espaços antes do \n: quebra de linha em Markdown.
         linhas = [f"**{c.acao} — {c.o_que}**", f"*Quando:* {c.quando}", c.porque]
         if c.quantia is not None:
-            por_rating = ", ".join(f"{v:,.0f} em {r}" for r, v in K.quantias(saldo).items())
+            por_rating = ", ".join(
+                f"{v:,.0f} em {r}" for r, v in K.quantias(saldo, investido, agora).items()
+            )
+            fraccao = K.FRACCAO_LANCAMENTO if K.em_lancamento(agora) else K.FRACCAO_MAXIMA
             linhas.append(
-                f"*Quanto:* {por_rating} (total {c.quantia:,.0f}, "
-                f"{K.FRACCAO_MAXIMA:.0%} do saldo; o resto fica de reserva)"
+                f"*Quanto, ainda neste ciclo:* {por_rating} (total {c.quantia:,.0f}; tecto de "
+                f"{fraccao:.0%} do capital do ciclo, o resto fica de reserva)"
             )
         linhas.append(f"*Confiança:* {c.confianca}")
         CAIXA[c.acao]("  \n".join(linhas))
 
     st.markdown("#### Plano da semana")
     st.caption(
-        "Pelo perfil do FC 26: ROI líquido de comprar em cada dia e vender na quarta. "
-        "Vender sempre antes de sexta às 18h de Londres, quando abre a promo."
+        "FC 26, fodder 84-87. O preço face à média é da época inteira; o ROI de comprar "
+        "e vender à quarta é medido só na 2.ª metade, com o intervalo de 95%. Vender "
+        "sempre antes de sexta às 18h de Londres, quando abre a promo."
     )
+
+    def roi(d):
+        f = K.FORA_DA_AMOSTRA.get(d)
+        if f is None:
+            return "—", "—"
+        return K.pct(f["mediana"]), f"{K.pct(f['ic'][0])} a {K.pct(f['ic'][1])}"
+
     plano = pd.DataFrame({
         "dia": K.DIAS,
-        "preço face à média da semana": [f"{K.PERFIL_FC26[d] * 100:+.1f}%" for d in range(7)],
-        "comprar hoje, vender quarta": [
-            f"{K.roi_esperado(d) * 100:+.1f}%" if d not in (2, 3, 4) else "—" for d in range(7)
-        ],
+        "preço face à média da semana": [K.pct(K.PERFIL_FC26[d]) for d in range(7)],
+        "comprar hoje, vender quarta": [roi(d)[0] for d in range(7)],
+        "intervalo 95%": [roi(d)[1] for d in range(7)],
     })
     st.table(plano)
 

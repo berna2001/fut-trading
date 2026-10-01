@@ -20,9 +20,9 @@ def acoes(agora, saldo=100_000, noticias=()):
     return [c.acao for c in K.conselhos(agora, saldo, noticias)]
 
 
-def principal(agora, saldo=100_000):
+def principal(agora, saldo=100_000, investido=0):
     """A recomendação de mercado do dia (nem aviso nem a de evitar)."""
-    return next(c for c in K.conselhos(agora, saldo)
+    return next(c for c in K.conselhos(agora, saldo, investido_no_ciclo=investido)
                 if c.acao in ("COMPRAR", "VENDER", "ESPERAR"))
 
 
@@ -56,24 +56,6 @@ def test_proxima_promo_e_sexta_as_18h_de_londres():
     assert K.proxima_promo(datetime(2026, 10, 23, 17, tzinfo=UTC)).day == 30
 
 
-def test_so_se_compra_quando_o_roi_esperado_e_positivo():
-    for dia in range(7):
-        agora = DEPOIS_DO_LANCAMENTO + timedelta(days=dia)
-        if principal(agora).acao == "COMPRAR":
-            assert K.roi_esperado(agora.astimezone(K.LONDRES).weekday()) > 0
-    # E o melhor dia de compra é domingo.
-    assert max(range(7), key=K.roi_esperado) == 6
-
-
-def test_quantia_respeita_a_reserva_e_divide_pelos_ratings():
-    q = K.quantias(100_000)
-    assert set(q) == {85, 86, 87}
-    assert sum(q.values()) <= 70_000
-    assert len(set(q.values())) == 1
-    assert K.quantias(0) == {85: 0, 86: 0, 87: 0}
-    sabado = DEPOIS_DO_LANCAMENTO + timedelta(days=5)
-    compra = principal(sabado, saldo=50_000)
-    assert compra.quantia == sum(K.quantias(50_000).values()) <= 35_000
 
 
 def test_aviso_de_lancamento_so_nas_primeiras_semanas():
@@ -108,23 +90,70 @@ def test_sem_noticias_de_promo_nao_ha_aviso():
     assert "AVISO" not in acoes(DEPOIS_DO_LANCAMENTO, noticias=[])
 
 
-def test_83_e_84_sao_sempre_de_evitar():
+def test_ciclo_de_tres_dias_nao_passa_os_70_por_cento_do_capital():
+    # A revisão de 01/10/2026 simulou isto com a versão antiga: 97 299 de
+    # 100 000. Sábado, domingo e segunda, actualizando saldo e investido.
+    saldo, investido = 100_000, 0
+    for dias in (5, 6, 7):  # sáb, dom, seg depois do lançamento
+        agora = DEPOIS_DO_LANCAMENTO + timedelta(days=dias)
+        compra = principal(agora, saldo, investido)
+        assert compra.acao == "COMPRAR"
+        saldo -= compra.quantia
+        investido += compra.quantia
+    assert 69_000 <= investido <= 70_000
+
+
+def test_no_lancamento_a_quantia_e_metade():
+    sabado_lanc = datetime(2026, 10, 3, 12, tzinfo=UTC)
+    sabado_depois = DEPOIS_DO_LANCAMENTO + timedelta(days=5)
+    assert K.quantias(100_000, 0, sabado_lanc) == {r: 35_000 // 3 for r in (85, 86, 87)}
+    assert K.quantias(100_000, 0, sabado_depois) == {r: 70_000 // 3 for r in (85, 86, 87)}
+
+
+def test_quantias_nunca_negativas_nem_acima_do_saldo():
+    agora = DEPOIS_DO_LANCAMENTO
+    assert K.quantias(30_000, 90_000, agora) == {85: 0, 86: 0, 87: 0}   # já passou o tecto
+    assert sum(K.quantias(10_000, 0, agora).values()) <= 10_000
+    assert K.quantias(0, 0, agora) == {85: 0, 86: 0, 87: 0}
+    assert K.quantias(-5, -5, agora) == {85: 0, 86: 0, 87: 0}
+
+
+def test_compra_cita_os_numeros_fora_da_amostra_e_nao_o_perfil():
+    domingo = DEPOIS_DO_LANCAMENTO + timedelta(days=6)
+    c = principal(domingo)
+    f = K.FORA_DA_AMOSTRA[6]
+    assert K.pct(f["mediana"]) in c.porque
+    assert K.pct(f["ic"][0]) in c.porque and K.pct(f["ic"][1]) in c.porque
+    assert "+10.8%" not in c.porque   # o número do perfil da época inteira
+
+
+def test_segunda_tem_confianca_baixa_e_sabado_media():
+    assert principal(DEPOIS_DO_LANCAMENTO).confianca == "baixa"
+    assert principal(DEPOIS_DO_LANCAMENTO + timedelta(days=5)).confianca == "média"
+
+
+def test_vender_cita_o_custo_real_de_segurar():
+    c = principal(DEPOIS_DO_LANCAMENTO + timedelta(days=3))  # quinta
+    pior = min(K.SEGURAR[r]["promo_pior"] for r in K.RATINGS)
+    assert c.acao == "VENDER" and K.pct(pior) in c.porque
+    assert "12% e 17%" not in c.porque
+
+
+def test_evitar_ratings_no_minimo_aparece_todos_os_dias():
     for dia in range(7):
-        assert "EVITAR" in acoes(DEPOIS_DO_LANCAMENTO + timedelta(days=dia))
+        cs = K.conselhos(DEPOIS_DO_LANCAMENTO + timedelta(days=dia), 100_000)
+        assert any(c.acao == "EVITAR" and "mínimo" in c.o_que for c in cs)
 
 
-def test_perfil_bate_com_o_relatorio():
-    # O perfil está copiado do relatório; se o relatório for regenerado com
-    # outros números e o perfil não, isto falha.
-    texto = Path(__file__).with_name("estudos").joinpath("eventos_fc26.md").read_text(encoding="utf-8")
-    linhas = texto.splitlines()
+def test_numeros_do_json_batem_com_o_relatorio():
+    # O json e o .md saem da mesma execução do relatorio_eventos.py. Se um
+    # for regenerado e o outro não, isto falha.
+    md = Path(__file__).with_name("estudos").joinpath("eventos_fc26.md").read_text(encoding="utf-8")
+    linhas = md.splitlines()
     i = next(i for i, l in enumerate(linhas) if l.startswith("| seg | ter | qua"))
-    valores = [float(v) / 100 for v in re.findall(r"([+-]\d+\.\d)%", linhas[i + 2])]
-    assert valores == [pytest.approx(K.PERFIL_FC26[d], abs=1e-9) for d in range(7)]
-
-
-def test_roi_esperado_desconta_a_taxa():
-    # Domingo (−8,0%) → quarta (+7,3%): 0,95 × 1,073 / 0,920 − 1.
-    assert K.roi_esperado(6) == pytest.approx(0.95 * 1.073 / 0.920 - 1)
-    # Comprar e vender no mesmo dia perde exactamente a taxa.
-    assert K.roi_esperado(2, 2) == pytest.approx(-0.05)
+    perfil = [float(v) / 100 for v in re.findall(r"([+-]\d+\.\d)%", linhas[i + 2])]
+    assert perfil == [pytest.approx(K.PERFIL_FC26[d], abs=5e-4) for d in range(7)]
+    for d, nome in [(5, "sáb"), (6, "dom"), (0, "seg"), (1, "ter")]:
+        linha = next(l for l in linhas if l.startswith(f"| {nome} | ") and "/2" in l)
+        mediana = float(re.findall(r"([+-]\d+\.\d)%", linha)[0]) / 100
+        assert mediana == pytest.approx(K.FORA_DA_AMOSTRA[d]["mediana"], abs=5e-4)
