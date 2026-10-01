@@ -75,6 +75,7 @@ def test_chamada_anota_o_cobrado_e_o_gasto_sobe(tmp_path, monkeypatch):
     P.chamar("get_player_price_history", livro=livro, player_id=1)
     P.chamar("get_player_price_history", livro=livro, player_id=2)
     assert P.gasto_no_mes(livro) == 4
+    assert b"\r" not in livro.read_bytes()  # mesmo ficheiro no Windows e no Linux
 
 
 def test_sem_cabecalho_conta_o_preco_de_tabela(tmp_path, monkeypatch):

@@ -82,6 +82,15 @@ def test_gravar_e_ler_devolve_o_mesmo(tmp_path):
     assert N.ler_registo(caminho) == linhas
 
 
+def test_gravar_usa_fins_de_linha_unix(tmp_path):
+    # Com "\r\n" a primeira recolha no Linux reescreveu as 13 linhas do
+    # registo só por causa dos fins de linha.
+    caminho = tmp_path / "noticias.csv"
+    linhas, _ = N.juntar([], N.ler_rss(RSS, "teste"), AGORA)
+    N.gravar(linhas, caminho)
+    assert b"\r" not in caminho.read_bytes()
+
+
 def test_uma_fonte_em_baixo_nao_cala_as_outras(tmp_path, monkeypatch):
     def descarregar(url):
         if url == "mau":

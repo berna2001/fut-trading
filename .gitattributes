@@ -1,0 +1,4 @@
+# Os CSV de registo sao escritos pelo Windows (localmente) e pelo Linux (na
+# Action). Sem isto, a primeira recolha no Linux reescreveu as 13 linhas do
+# noticias.csv so por causa dos fins de linha (commit 53e75e2).
+*.csv text eol=lf

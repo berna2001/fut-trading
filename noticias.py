@@ -140,7 +140,10 @@ def juntar(existentes, itens, agora):
 
 def gravar(linhas, caminho=REGISTO):
     with open(caminho, "w", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=COLUNAS)
+        # "\n" e não o "\r\n" de omissão do csv: o ficheiro é escrito no
+        # Windows e na Action (Linux), e com "\r\n" cada recolha no Linux
+        # reescrevia todas as linhas no diff (commit 53e75e2).
+        w = csv.DictWriter(f, fieldnames=COLUNAS, lineterminator="\n")
         w.writeheader()
         w.writerows(linhas)
 

@@ -103,7 +103,9 @@ def gasto_no_mes(livro=LIVRO, agora=None):
 def _anotar(endpoint, params, creditos, livro=LIVRO, agora=None):
     novo = not Path(livro).exists()
     with open(livro, "a", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=COLUNAS)
+        # "\n" pela mesma razão que no noticias.gravar: o mesmo ficheiro é
+        # escrito no Windows e no Linux.
+        w = csv.DictWriter(f, fieldnames=COLUNAS, lineterminator="\n")
         if novo:
             w.writeheader()
         w.writerow({
