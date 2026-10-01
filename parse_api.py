@@ -15,6 +15,7 @@ chamadas.
 import csv
 import json
 import os
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -128,20 +129,36 @@ def verificar_orcamento(endpoint, livro=LIVRO, agora=None, limite=CREDITOS_MENSA
         )
 
 
-def chamar(endpoint, livro=LIVRO, **params):
+# O plano grátis aceita rajadas de 30 pedidos e depois 5 por minuto (resposta
+# 429 de 01/10/2026, com "retry_after" em segundos). Um 429 não é erro do
+# pedido: espera-se o que o servidor manda e tenta-se outra vez.
+TENTATIVAS_429 = 6
+
+
+def chamar(endpoint, livro=LIVRO, _dormir=time.sleep, **params):
     """Chama um endpoint e devolve o campo `data` da resposta."""
     verificar_orcamento(endpoint, livro)
     url = BASE + endpoint + "?" + urllib.parse.urlencode(params)
     pedido = urllib.request.Request(url, headers={"X-API-Key": _chave()})
-    try:
-        with urllib.request.urlopen(pedido, timeout=180) as r:
-            cobrado = r.headers.get("X-Credits-Charged")
-            corpo = json.load(r)
-    except urllib.error.HTTPError as e:
-        cobrado = e.headers.get("X-Credits-Charged")
-        if cobrado:
-            _anotar(endpoint, params, int(cobrado), livro)
-        raise ErroParse(f"{endpoint}: HTTP {e.code}: {e.read().decode()[:300]}") from e
+    for tentativa in range(TENTATIVAS_429):
+        try:
+            with urllib.request.urlopen(pedido, timeout=180) as r:
+                cobrado = r.headers.get("X-Credits-Charged")
+                corpo = json.load(r)
+            break
+        except urllib.error.HTTPError as e:
+            cobrado = e.headers.get("X-Credits-Charged")
+            if cobrado:
+                _anotar(endpoint, params, int(cobrado), livro)
+            texto = e.read().decode()
+            if e.code == 429 and tentativa < TENTATIVAS_429 - 1:
+                try:
+                    espera = float(json.loads(texto)["error"]["retry_after"])
+                except (ValueError, KeyError, TypeError):
+                    espera = 15.0
+                _dormir(espera + 1)
+                continue
+            raise ErroParse(f"{endpoint}: HTTP {e.code}: {texto[:300]}") from e
     # Se o servidor não disser quanto cobrou, conta-se o preço de tabela: é
     # melhor sobrestimar o gasto do que passar o limite sem saber.
     _anotar(endpoint, params, int(cobrado) if cobrado else CUSTO[endpoint], livro)
