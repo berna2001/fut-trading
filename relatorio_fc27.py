@@ -9,6 +9,7 @@ Só percentagens e contagens, nunca preços (o repositório é público).
 
 import json
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from pathlib import Path
 
 import descarregar_fc26 as D26
@@ -18,7 +19,11 @@ import vendas as V
 
 SAIDA = Path(__file__).with_name("estudos") / "medicao_fc27.md"
 DIAS = ["seg", "ter", "qua", "qui", "sex", "sáb", "dom"]
-ANO = 2026
+# Quando as vendas foram lidas: a descarga correu de 11:43:22 a 11:44:04 UTC
+# de 01/10/2026 (saída do comando). As horas das vendas não trazem ano; a
+# leitura dá-o.
+REFERENCIA = datetime(2026, 10, 1, 11, 44, tzinfo=timezone.utc)
+LONDRES = ZoneInfo("Europe/London")
 
 
 def pct(x):
@@ -55,13 +60,13 @@ def gerar():
     for c in cartas:
         cid = int(c["id"])
         s = json.loads((D27.PASTA / f"vendas_{cid}.json").read_text(encoding="utf-8"))["sales"]
-        rb = V.razao_face_a_media(s, ANO, series[cid], "Buy Now")
-        rl = V.razao_face_a_media(s, ANO, series[cid], "Bid")
+        rb = V.razao_face_a_media(s, REFERENCIA, series[cid], "Buy Now")
+        rl = V.razao_face_a_media(s, REFERENCIA, series[cid], "Bid")
         bins.append(rb)
         if rl:
             bids.append(rl)
-        ida = V.custo_de_ida_e_volta(s, ANO)
-        a(f"| {c['name']} | {V.vendas_por_hora(s, ANO):.0f} | {V.taxa_nao_vendidas(s):.0%} "
+        ida = V.custo_de_ida_e_volta(s, REFERENCIA)
+        a(f"| {c['name']} | {V.vendas_por_hora(s, REFERENCIA):.0f} | {V.taxa_nao_vendidas(s):.0%} "
           f"| {rb:.3f} | {'—' if rl is None else f'{rl:.3f}'} | {pct(ida['dispersao_q3_q1'])} |")
     a(f"\n**Sim.** As compras Buy Now concretizaram-se entre {min(bins):.3f} e "
       f"{max(bins):.3f} da média horária. As licitações ganhas saíram entre "
@@ -69,13 +74,15 @@ def gerar():
       f"licitação é mais barato, mas não se sabe quantas se perdem. Do lado da venda, "
       f"uma parte das listagens não vende à primeira (coluna \"não vendidas\"), o que "
       f"obriga a relistar.\n")
-    a("Isto valida o uso da média diária no estudo do FC 26, para estas cartas e "
-      "neste momento do mercado.\n")
+    a("**Mas não nas cartas certas.** Estas 6 são as primeiras da página do site, não "
+      "o fodder mais barato do rating: a mais cara custava 16 vezes o fodder. Não valida o estudo do FC 26 para o fodder; mostra que, nestas cartas e "
+      "neste dia, a média horária era o preço a que se transaccionava.\n")
 
     a("## Hora do dia\n")
-    a("Preço face à média das 24 horas centradas (mediana). Horas em UTC: "
-      "as promos abrem às 17h UTC (18h UK).\n")
-    p = PF.perfil_horario(series.values())
+    a("Preço face à média das 24 horas centradas (mediana). **Horas de Londres** "
+      "(e de Lisboa): as promos abrem às 18h. Em hora de Londres o perfil não muda com "
+      "a mudança da hora a 25/10; em UTC mudaria uma hora.\n")
+    p = PF.perfil_horario(series.values(), LONDRES)
     a("| " + " | ".join(f"{h:02d}" for h in range(24)) + " |")
     a("|" + "---|" * 24)
     a("| " + " | ".join(f"{p[h] * 100:+.1f}" for h in range(24)) + " |\n")
@@ -84,7 +91,7 @@ def gerar():
     # versão desta frase dizia que +6,2% era "menor do que a taxa". O que
     # conta é o ROI líquido de comprar na hora barata e vender na cara.
     roi_hora = 0.95 * (1 + p[cara]) / (1 + p[barata]) - 1
-    a(f"Mais barata às {barata:02d}h UTC ({pct(p[barata])}), mais cara às {cara:02d}h UTC "
+    a(f"Mais barata às {barata:02d}h ({pct(p[barata])}), mais cara às {cara:02d}h "
       f"({pct(p[cara])}). Comprar às {barata:02d}h e vender às {cara:02d}h do mesmo dia "
       f"dá {pct(roi_hora)} líquido, "
       + ("perto de zero: a hora sozinha quase não paga uma operação, mas escolhe o "
@@ -97,16 +104,18 @@ def gerar():
     a("|" + "---|" * len(ps))
     a("| " + " | ".join(f"{pct(ps[d][0])} ({ps[d][1]})" for d in sorted(ps)) + " |\n")
     a("Entre parênteses, dias-carta. **São duas semanas, e são as do crash de "
-      "lançamento.** Mostra fim-de-semana barato e início de semana caro, como no "
-      "FC 26, mas não chega para confirmar o ciclo. Precisa de mais semanas.\n")
+      "lançamento, com 4 a 6 dias-carta por dia.** O fim-de-semana sai barato, como no "
+      "FC 26, mas o resto não bate: aqui segunda e terça são os dias mais caros, no "
+      "FC 26 eram quarta e quinta. Não confirma nem desmente o ciclo.\n")
 
     a("## Limites\n")
-    a("- **As cartas 86 do FC 27 ainda não são fodder.** Valem ordens de grandeza "
-      "diferentes entre si e cada uma segue o seu caminho. O ciclo do FC 26 é de "
-      "fodder, cujo preço vem da procura de SBCs; só deve aparecer quando o mercado "
-      "do FC 27 amadurecer.\n"
-      "- **As horas das vendas assumem UTC+1**, verificado a 01/10/2026. Muda no "
-      "fim de Outubro com o fim da hora de Verão.\n"
+    a("- **As cartas medidas não são o fodder.** Foram escolhidas pela ordem do site "
+      "(revisão independente de 01/10/2026). Havia fodder 86 na página mais barato do que "
+      "todas as escolhidas; "
+      "a próxima medição usa `descarregar_fc27.fodder()`, que escolhe as mais baratas.\n"
+      "- **As horas das vendas assumem a hora de Londres**, verificado a 01/10/2026 "
+      "(UTC+1). Depois de 25/10, quando Londres passa a UTC+0, tem de se verificar outra "
+      "vez que o site acompanha a mudança.\n"
       "- **6 cartas, um só rating, um só dia de vendas.** É uma verificação, não um "
       "estudo.\n")
     SAIDA.parent.mkdir(exist_ok=True)
