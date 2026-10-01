@@ -4,6 +4,8 @@ import io
 import json
 from datetime import datetime, timezone
 
+from pathlib import Path
+
 import pytest
 
 import parse_api as P
@@ -113,7 +115,9 @@ def test_resposta_sem_sucesso_levanta_erro_mas_fica_anotada(tmp_path, monkeypatc
 
 def test_custos_batem_com_o_agents_md():
     # O AGENTS.md cita custos; se um mudar aqui sem mudar lá, ficam a divergir.
-    texto = open("AGENTS.md", encoding="utf-8").read()
+    # Pelo caminho do teste, não pelo directório corrente: com o pytest
+    # corrido de outra pasta, "AGENTS.md" não se encontrava.
+    texto = Path(__file__).with_name("AGENTS.md").read_text(encoding="utf-8")
     for endpoint in ["get_player_price_history", "get_fc27_sales_history",
                      "get_players_by_rating", "get_fc27_market_snapshot",
                      "get_fc27_sbcs_list"]:
@@ -158,3 +162,18 @@ def test_429_sem_fim_acaba_em_erro(tmp_path, monkeypatch):
         P.chamar("get_player_price_history", livro=tmp_path / "c.csv",
                  _dormir=esperas.append, player_id=1)
     assert len(esperas) == P.TENTATIVAS_429 - 1
+
+
+def test_erro_http_com_creditos_cobrados_fica_anotado(tmp_path, monkeypatch):
+    # Sobrevivia na revisão de 01/10/2026: deixar de anotar um HTTPError que
+    # trouxe X-Credits-Charged não fazia falhar nenhum teste.
+    def urlopen(pedido, timeout):
+        raise P.urllib.error.HTTPError("u", 500, "erro", {"X-Credits-Charged": "2"},
+                                       io.BytesIO(b'{"error": "x"}'))
+
+    monkeypatch.setenv("PARSE_API_KEY", "pmx_teste")
+    monkeypatch.setattr(P.urllib.request, "urlopen", urlopen)
+    livro = tmp_path / "c.csv"
+    with pytest.raises(P.ErroParse):
+        P.chamar("get_player_price_history", livro=livro, player_id=1)
+    assert P.gasto_no_mes(livro) == 2

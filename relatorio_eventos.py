@@ -107,7 +107,8 @@ def gerar():
     a(f"**Dados:** histórico diário de PC (média diária do FUTBIN, via parse.bot) de "
       f"{n_cartas} cartas gold rare normais, {len(D.RATINGS)} ratings "
       f"({D.RATINGS[0]}-{D.RATINGS[-1]}), de {INICIO:%d/%m/%Y} a {FIM:%d/%m/%Y}. "
-      f"As 4 primeiras semanas (crash de lançamento) ficam de fora.\n")
+      f"Os primeiros {(INICIO - date(2025, 9, 18)).days} dias (crash de lançamento) "
+      f"ficam de fora.\n")
     a("**ROI sempre líquido da taxa de 5%:** `0,95 × venda / compra − 1`. "
       "Por cada dia, a mediana entre as cartas.\n")
 
@@ -204,7 +205,8 @@ def gerar():
     normais = semanas(fodder, 6, 4, INICIO, FIM)
     promo = [E.roi_evento(fodder, e["data"], 5, -1) for e in eventos]
     a(f"\n**As promos grandes acrescentam pouco ao ciclo semanal.** E−5 → véspera é "
-      f"domingo → quinta. Numa semana qualquer, domingo → quinta dá mediana "
+      f"domingo → quinta. Em todas as semanas, incluindo as de promo, domingo → quinta "
+      f"dá mediana "
       f"{pct(st.median(normais))} e média {pct(st.mean(normais))} ({len(normais)} semanas); "
       f"nas 7 semanas de promo grande, mediana {pct(st.median(promo))} e média "
       f"{pct(st.mean(promo))}.")
@@ -273,6 +275,8 @@ def gerar():
       "O ciclo tem de ser confirmado com dados do FC 27 antes de se recomendar.\n"
       "- **Promos grandes: 7 eventos.** Dá para ver o que é consistente (não segurar "
       "depois do lançamento), não para afinar uma janela.\n"
+      "- **Ultimate Scream (24/10/2025):** as janelas que compram mais de 4 dias antes "
+      "começam antes de 20/10/2025, ainda dentro do crash de lançamento.\n"
       "- **Fuga de informação:** comprar k dias antes de uma promo pressupõe que a "
       "data era pública. Para as promos grandes era (calendário e leaks com 1-2 "
       "semanas), mas não está medido evento a evento.\n")

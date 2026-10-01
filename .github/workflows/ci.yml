@@ -72,19 +72,10 @@ jobs:
       - name: Nenhum preço no repositório?
         # O repositório é público e os preços do parse.bot são dados do
         # FUTBIN. O .gitignore não chega: um `git add -f` passa-lhe à frente.
-        # Verifica o que está versionado, pela pasta e pelo cabeçalho dos CSV.
-        run: |
-          mau=0
-          for f in $(git ls-files); do
-            case "$f" in
-              precos/*|*.parquet) echo "VERSIONADO: $f"; mau=1 ;;
-              *.csv)
-                if head -1 "$f" | grep -qiE '(^|,)(preco|price)[a-z_]*(,|$)'; then
-                  echo "CSV COM PREÇOS: $f"; mau=1
-                fi ;;
-            esac
-          done
-          exit $mau
+        # Era um grep aqui; deixava passar `"price"`, `preço`, `coins` e JSON
+        # (revisão independente de 01/10/2026). O script normaliza e está
+        # testado em test_guardar_precos.py.
+        run: python guardar_precos.py
 
       - name: O travão contra push para main está inteiro?
         # CORRE o hook, não o lê à procura de palavras. No bet, um grep aceitou

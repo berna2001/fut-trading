@@ -86,8 +86,11 @@ def gasto_no_mes(livro=LIVRO, agora=None):
     """Créditos gastos no mês civil corrente (UTC), segundo o nosso livro.
 
     O parse.bot mostra uma janela móvel de 30 dias e não diz em que dia o
-    saldo renova. O mês civil é a aproximação conservadora: nunca deixa gastar
-    mais de 200 em 30 dias seguidos se a renovação for mensal.
+    saldo renova. O travão conta por mês civil, e isso NÃO impede gastar mais de
+    200 em 30 dias seguidos: 200 a 31/10 e mais 200 a 01/11 passam os dois
+    (revisão independente de 01/10/2026; esta docstring prometia o contrário).
+    Acima do plano é o próprio servidor que recusa; o travão daqui serve para
+    não gastar o mês numa tarde, não para o substituir.
     """
     agora = agora or datetime.now(timezone.utc)
     if not Path(livro).exists():
