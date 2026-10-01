@@ -18,6 +18,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # O histórico todo: a verificação do registo compara com a base.
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
@@ -39,6 +42,30 @@ jobs:
           s=$?
           if [ $s -eq 5 ]; then echo "ainda sem testes"; exit 0; fi
           exit $s
+
+      - name: O registo de notícias não encolheu?
+        # Um PR pode acrescentar notícias; não pode fazer desaparecer as que já
+        # lá estavam, nem mudar o instante em que foram vistas. No bet, um
+        # `rm` antes de um `git add -A` apagou registo do repositório.
+        if: github.event_name == 'pull_request'
+        run: |
+          git show "${{ github.event.pull_request.base.sha }}:noticias.csv" > /tmp/antes.csv 2>/dev/null || : > /tmp/antes.csv
+          python - <<'PY'
+          import csv, pathlib, sys
+          def ler(p):
+              p = pathlib.Path(p)
+              if not p.exists() or not p.read_text(encoding="utf-8").strip():
+                  return {}
+              with open(p, newline="", encoding="utf-8") as f:
+                  return {l["id"]: l for l in csv.DictReader(f)}
+          antes, depois = ler("/tmp/antes.csv"), ler("noticias.csv")
+          perdidas = [i for i in antes if i not in depois]
+          mudadas = [i for i in antes if i in depois and antes[i] != depois[i]]
+          for i in perdidas: print("DESAPARECEU", antes[i]["titulo"])
+          for i in mudadas: print("MUDOU", antes[i]["titulo"])
+          print(f"  {len(antes)} antes, {len(depois)} depois")
+          sys.exit(1 if perdidas or mudadas else 0)
+          PY
 
       - name: O travão contra push para main está inteiro?
         # CORRE o hook, não o lê à procura de palavras. No bet, um grep aceitou

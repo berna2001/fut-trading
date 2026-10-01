@@ -1,0 +1,59 @@
+name: Recolha de noticias
+
+on:
+  schedule:
+    # De 2 em 2 horas. Um leak dá normalmente dias de antecedência (o da
+    # Destined for Glory Team 2 saiu a 28/09 para uma promo de 02/10), por
+    # isso 2 horas de atraso na recolha custam pouco. Custo em minutos do
+    # GitHub Actions: ~12 execuções/dia × ~1 min = ~360 min/mês, dentro dos
+    # 2000 grátis de um repositório privado (partilhados com o bet).
+    # Minutos fora da hora certa: é na hora certa que o GitHub mais atrasa.
+    - cron: "23 */2 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: recolha-noticias
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  recolher:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Recolher
+        run: python noticias.py
+
+      - name: Guardar no repositorio
+        # É o único caminho legítimo para main sem PR (AGENTS.md). Só a partir
+        # de main: um workflow_dispatch num ramo empurraria o código do ramo.
+        run: |
+          if [ "${{ github.ref }}" != "refs/heads/main" ]; then
+            echo "Ramo ${{ github.ref }}: recolhi mas não empurro para main."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add noticias.csv
+          if git diff --cached --quiet; then
+            echo "Nada de novo."
+            exit 0
+          fi
+          git commit -m "Recolha de noticias $(date -u +%Y-%m-%dT%H:%MZ)"
+          for tentativa in 1 2 3; do
+            git pull --rebase --autostash origin main && git push origin HEAD:main && exit 0
+            echo "tentativa $tentativa falhou, a repetir..."
+            sleep 10
+          done
+          exit 1
