@@ -69,6 +69,6 @@ def test_conselheiro_da_uma_accao_de_mercado_e_a_regra_de_evitar():
     caixas = [c.value for grupo in (at.success, at.warning, at.info, at.error) for c in grupo]
     accoes = {"COMPRAR", "VENDER", "ESPERAR"}
     assert sum(any(f"**{a} —" in c for a in accoes) for c in caixas) == 1
-    assert any("**EVITAR — Ratings 83 e 84**" in c for c in caixas)
+    assert any("**EVITAR — Ratings cujo fodder está no preço mínimo" in c for c in caixas)
     # O plano da semana tem os sete dias.
     assert len(at.table[0].value) == 7
