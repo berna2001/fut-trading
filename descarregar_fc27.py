@@ -43,6 +43,24 @@ def lista():
     ))
 
 
+def lista_fodder(rating, pagina=1):
+    """Cartas gold rare de um rating, ordenadas pelo preço de PC, as mais
+    baratas primeiro: o fodder. 5 créditos por página.
+
+    Ordenado pelo site sobre o catálogo inteiro, não só sobre uma página. As
+    cartas sem preço (0) vêm primeiro e o escolher_fodder deita-as fora.
+    """
+    return _cache(f"fodder_{rating}_p{pagina}.json", lambda: P.chamar(
+        "get_players_by_rating", year="27", min_rating=rating, max_rating=rating,
+        version="gold_rare", platform="pc", sort_by_price="asc", page=pagina,
+    ))
+
+
+def fodder(rating, n=N_CARTAS):
+    """As n cartas mais baratas do rating no PC."""
+    return D26.escolher_fodder(lista_fodder(rating)["results"], n)
+
+
 def horario(carta_id):
     return _cache(f"horario_{carta_id}.json", lambda: P.chamar(
         "get_player_price_history", year="27", platform="pc",
@@ -57,7 +75,7 @@ def vendas(carta_id):
 
 
 if __name__ == "__main__":
-    escolhidas = D26.escolher(lista()["results"], N_CARTAS)
+    escolhidas = D26.escolher_como_no_estudo(lista()["results"], N_CARTAS)
     print(f"{len(escolhidas)} cartas 86 escolhidas")
     if "--so-lista" in sys.argv:
         sys.exit(0)

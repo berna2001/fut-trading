@@ -59,7 +59,7 @@ def carregar():
     for r in D.RATINGS:
         lista = json.loads((PASTA / f"lista_{r}.json").read_text(encoding="utf-8"))
         series[r] = [E.ler_serie(PASTA / f"hist_{c['id']}.json")
-                     for c in D.escolher(lista["results"])]
+                     for c in D.escolher_como_no_estudo(lista["results"])]
     return series
 
 

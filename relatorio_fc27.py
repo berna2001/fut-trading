@@ -33,7 +33,7 @@ def horario(carta_id):
 
 def gerar():
     lista = json.loads((D27.PASTA / "lista_86.json").read_text(encoding="utf-8"))
-    cartas = D26.escolher(lista["results"], D27.N_CARTAS)
+    cartas = D26.escolher_como_no_estudo(lista["results"], D27.N_CARTAS)
     series = {int(c["id"]): horario(int(c["id"])) for c in cartas}
     inicio = min(min(s) for s in series.values())
     fim = max(max(s) for s in series.values())

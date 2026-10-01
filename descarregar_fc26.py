@@ -35,18 +35,32 @@ def _cache(nome, obter):
     return dados
 
 
-def escolher(resultados, n=CARTAS_POR_RATING):
-    """As n cartas gold rare normais com preço de PC, por ordem do site.
-
-    Cartas com preço 0 não são transaccionáveis (ou não têm mercado) e não
-    dizem nada sobre o mercado.
-    """
-    boas = [
+def _transaccionaveis(resultados):
+    """Gold rare normais com preço de PC. Preço 0 = sem mercado (não
+    transaccionável ou sem listagens): não diz nada sobre o mercado."""
+    return [
         r for r in resultados
         if (r.get("version") or "").lower() in ("normal", "gold rare", "rare")
         and int(r.get("price_pc_coins") or 0) > 0
     ]
-    return boas[:n]
+
+
+def escolher_como_no_estudo(resultados, n=CARTAS_POR_RATING):
+    """As primeiras n cartas pela ordem do site — o critério dos estudos já
+    feitos (FC 26 e medição do FC 27).
+
+    Só existe para os relatórios reproduzirem esses estudos com as cartas que
+    estão em cache. Não serve para escolher fodder: a revisão de 01/10/2026
+    mostrou que, nas 86 do FC 27, escolhia cartas de 61 500 e 21 750 quando
+    as mais baratas estavam a 3 800. Para descargas novas: escolher_fodder.
+    """
+    return _transaccionaveis(resultados)[:n]
+
+
+def escolher_fodder(resultados, n=CARTAS_POR_RATING):
+    """As n cartas mais baratas no PC — o fodder, que é o que o conselheiro
+    manda comprar."""
+    return sorted(_transaccionaveis(resultados), key=lambda r: int(r["price_pc_coins"]))[:n]
 
 
 def cartas_do_rating(rating):
@@ -67,7 +81,7 @@ if __name__ == "__main__":
     so_listas = "--so-listas" in sys.argv
     for rating in RATINGS:
         lista = cartas_do_rating(rating)
-        escolhidas = escolher(lista["results"])
+        escolhidas = escolher_como_no_estudo(lista["results"])
         print(f"{rating}: {len(lista['results'])} na página, {len(escolhidas)} escolhidas")
         if so_listas:
             continue
