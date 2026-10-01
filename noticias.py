@@ -154,18 +154,41 @@ def descarregar(url):
         return r.read().decode("utf-8", errors="replace")
 
 
-def recolher(caminho=REGISTO, fontes=FONTES, agora=None):
-    agora = agora or datetime.now(timezone.utc)
+def ler_fontes(fontes=FONTES):
+    """(itens, falhas) de todas as fontes. Uma fonte em baixo não cala as outras."""
     itens, falhas = [], []
     for nome, url in fontes.items():
-        # Uma fonte em baixo não pode calar as outras.
         try:
             itens += ler_rss(descarregar(url), nome)
         except Exception as e:
             falhas.append(f"{nome}: {type(e).__name__}: {e}")
+    return itens, falhas
+
+
+def recolher(caminho=REGISTO, fontes=FONTES, agora=None):
+    agora = agora or datetime.now(timezone.utc)
+    itens, falhas = ler_fontes(fontes)
     linhas, novas = juntar(ler_registo(caminho), itens, agora)
     gravar(linhas, caminho)
     return novas, falhas
+
+
+def ao_vivo(caminho=REGISTO, fontes=FONTES, agora=None):
+    """O arquivo mais o que os RSS têm agora, SEM gravar nada.
+
+    Para a app. A recolha agendada no GitHub chega com horas de atraso (5 a 7h
+    nas workflows do bet a 30/09-01/10/2026) e pode ser descartada em carga
+    alta, segundo a documentação do GitHub; a app não pode depender dela para
+    mostrar os avisos de promos. O arquivo (com o visto_em) continua a ser só
+    da recolha: a app corre na Streamlit Cloud, cujo disco não persiste e que
+    não deve escrever no repositório.
+
+    Devolve (linhas, novas, falhas), como o juntar mais as falhas.
+    """
+    agora = agora or datetime.now(timezone.utc)
+    itens, falhas = ler_fontes(fontes)
+    linhas, novas = juntar(ler_registo(caminho), itens, agora)
+    return linhas, novas, falhas
 
 
 if __name__ == "__main__":

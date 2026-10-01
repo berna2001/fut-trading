@@ -20,6 +20,7 @@ import streamlit as st
 
 import calculadora as C
 import conselheiro as K
+import noticias as N
 
 RAIZ = Path(__file__).parent
 # Variável de ambiente só para os testes poderem apontar a um ficheiro
@@ -55,10 +56,40 @@ with st.sidebar:
     st.caption("Fica só nesta sessão. Actualiza os dois depois de cada compra ou venda.")
 
 
+# Leitura ao vivo dos RSS, para as notícias não dependerem da recolha
+# agendada (que no GitHub chega com horas de atraso). FUT_AO_VIVO=0 desliga-a:
+# os testes fazem-no para nunca irem à rede.
+AO_VIVO = os.environ.get("FUT_AO_VIVO", "1") != "0"
+
+
+@st.cache_data(ttl=30 * 60, show_spinner=False)
+def _ao_vivo(caminho):
+    """Uma ida às fontes a cada 30 minutos, partilhada por todas as visitas."""
+    linhas, novas, falhas = N.ao_vivo(Path(caminho))
+    return linhas, len(novas), falhas, datetime.now(timezone.utc)
+
+
+def estado_noticias():
+    """(fonte, detalhe) para mostrar de onde vieram as notícias."""
+    if not AO_VIVO:
+        return "arquivo", "só o noticias.csv (leitura ao vivo desligada)"
+    _, novas, falhas, quando = _ao_vivo(str(NOTICIAS))
+    hora = quando.astimezone(ZoneInfo("Europe/Lisbon"))
+    texto = f"actualizado às {hora:%H:%M} (Lisboa); {novas} ainda não arquivada(s)"
+    if falhas:
+        texto += f"; fontes em falha: {len(falhas)} de {len(N.FONTES)}"
+    return "ao vivo", texto
+
+
 def ler_noticias():
-    if not NOTICIAS.exists():
+    if AO_VIVO:
+        linhas, _, _, _ = _ao_vivo(str(NOTICIAS))
+        df = pd.DataFrame(linhas, columns=None if linhas else
+                          ["publicado_em", "categoria", "titulo", "link"])
+    elif not NOTICIAS.exists():
         return pd.DataFrame(columns=["publicado_em", "categoria", "titulo", "link"])
-    df = pd.read_csv(NOTICIAS)
+    else:
+        df = pd.read_csv(NOTICIAS)
     # Sem isto, um ficheiro sem "categoria" lia-se bem e rebentava depois,
     # dentro do conselheiro, levando a aba inteira (apanhado pelo teste).
     falta = {"publicado_em", "categoria", "titulo", "link"} - set(df.columns)
@@ -128,9 +159,10 @@ def aba_noticias():
         format_func=CATEGORIAS.get,
     )
     df = df[df["categoria"].isin(escolhidas)]
+    _, detalhe = estado_noticias()
     st.caption(
-        f"{len(df)} notícias. Recolhidas de 2 em 2 horas dos RSS do Google News e do "
-        "SoccerGaming, que republicam os leaks dos insiders do X. Hora de publicação em UTC."
+        f"{len(df)} notícias, dos RSS do Google News e do SoccerGaming, que republicam os "
+        f"leaks dos insiders do X — {detalhe}. Hora de publicação em UTC."
     )
     for _, n in df.head(60).iterrows():
         rotulo = CATEGORIAS.get(n["categoria"], n["categoria"])

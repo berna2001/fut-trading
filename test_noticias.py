@@ -100,3 +100,25 @@ def test_uma_fonte_em_baixo_nao_cala_as_outras(tmp_path, monkeypatch):
     monkeypatch.setattr(N, "descarregar", descarregar)
     novas, falhas = N.recolher(tmp_path / "n.csv", {"a": "mau", "b": "bom"}, AGORA)
     assert len(novas) == 2 and len(falhas) == 1
+
+
+def test_ao_vivo_junta_o_arquivo_e_as_fontes_sem_gravar(tmp_path, monkeypatch):
+    arquivo = tmp_path / "noticias.csv"
+    antigas, _ = N.juntar([], N.ler_rss(RSS, "teste"), AGORA)
+    N.gravar(antigas, arquivo)
+    antes = arquivo.read_bytes()
+
+    nova = RSS.replace("Destined for Glory Team 2 Players Leaked", "Team 3 SBC leaked")
+    def descarregar(url):
+        if url == "b":
+            raise OSError("fonte em baixo")
+        return nova
+
+    monkeypatch.setattr(N, "descarregar", descarregar)
+    linhas, novas, falhas = N.ao_vivo(arquivo, {"a": "a", "b": "b"}, AGORA + timedelta(hours=1))
+
+    assert [n["titulo"] for n in novas] == ["FC 27 Team 3 SBC leaked"]
+    assert len(linhas) == len(antigas) + 1
+    assert len(falhas) == 1
+    # Não grava: o arquivo é só da recolha agendada.
+    assert arquivo.read_bytes() == antes
