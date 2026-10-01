@@ -1,0 +1,4 @@
+# O cliente do parse.bot e a recolha de notícias usam só a biblioteca padrão.
+# As dependências entram quando houver código que as use, e cada uma com o
+# mínimo verificado (lição do bet: um mínimo mal posto não é apanhado pela CI,
+# que instala sempre a versão mais recente).
