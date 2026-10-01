@@ -1,4 +1,11 @@
-# O cliente do parse.bot e a recolha de notícias usam só a biblioteca padrão.
-# As dependências entram quando houver código que as use, e cada uma com o
-# mínimo verificado (lição do bet: um mínimo mal posto não é apanhado pela CI,
-# que instala sempre a versão mais recente).
+# Mínimos verificados a 01/10/2026 descarregando as versões e lendo o código,
+# não adivinhados (lição do bet: a CI instala sempre a mais recente, por isso
+# um mínimo errado não é apanhado por nada).
+#
+# streamlit 1.28: primeira com streamlit.testing.v1.AppTest, que o
+# test_app.py usa (a 1.27 não o tem). tabs, metric e multiselect(format_func=)
+# já existiam.
+streamlit>=1.28
+# pandas 2.0: primeira em que to_datetime aceita format="ISO8601". Na 1.5.3 a
+# palavra aparece só num comentário.
+pandas>=2.0
