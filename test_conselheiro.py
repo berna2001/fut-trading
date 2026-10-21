@@ -16,6 +16,10 @@ INVERNO = datetime(2026, 11, 16, 12, tzinfo=UTC)
 DEPOIS_DO_LANCAMENTO = datetime(2026, 11, 2, 12, tzinfo=UTC)  # uma segunda
 
 
+def aviso_promo(conselhos):
+    return [c for c in conselhos if c.acao == "AVISO" and c.o_que.startswith("Próxima promo")]
+
+
 def acoes(agora, saldo=100_000, noticias=()):
     return [c.acao for c in K.conselhos(agora, saldo, noticias)]
 
@@ -59,8 +63,9 @@ def test_proxima_promo_e_sexta_as_18h_de_londres():
 
 
 def test_aviso_de_lancamento_so_nas_primeiras_semanas():
-    assert "AVISO" in acoes(datetime(2026, 10, 3, 12, tzinfo=UTC))
-    assert "AVISO" not in acoes(DEPOIS_DO_LANCAMENTO)
+    titulos = lambda agora: [c.o_que for c in K.conselhos(agora, 100_000) if c.acao == "AVISO"]
+    assert "Queda de lançamento do FC 27" in titulos(datetime(2026, 10, 3, 12, tzinfo=UTC))
+    assert "Queda de lançamento do FC 27" not in titulos(DEPOIS_DO_LANCAMENTO)
 
 
 def test_noticias_de_promo_recentes_viram_aviso_e_as_antigas_nao():
@@ -70,7 +75,7 @@ def test_noticias_de_promo_recentes_viram_aviso_e_as_antigas_nao():
         {"categoria": "leak", "titulo": "Promo velha", "publicado_em": agora - timedelta(days=9)},
         {"categoria": "evolucao", "titulo": "Evo nova", "publicado_em": agora - timedelta(days=1)},
     ]
-    avisos = [c for c in K.conselhos(agora, 100_000, noticias) if c.acao == "AVISO"]
+    avisos = aviso_promo(K.conselhos(agora, 100_000, noticias))
     assert len(avisos) == 1
     assert "Promo X leaked" in avisos[0].porque
     assert "Promo velha" not in avisos[0].porque and "Evo nova" not in avisos[0].porque
@@ -78,10 +83,12 @@ def test_noticias_de_promo_recentes_viram_aviso_e_as_antigas_nao():
 
 
 def test_sem_noticias_de_promo_nao_ha_aviso():
-    assert "AVISO" not in acoes(DEPOIS_DO_LANCAMENTO, noticias=[])
+    assert aviso_promo(K.conselhos(DEPOIS_DO_LANCAMENTO, 100_000, [])) == []
 
 
-def test_ciclo_de_tres_dias_nao_passa_os_70_por_cento_do_capital():
+@pytest.mark.parametrize("confirmado, minimo, maximo", [(False, 34_000, 35_000), (True, 69_000, 70_000)])
+def test_ciclo_de_tres_dias_nao_passa_o_tecto_do_capital(confirmado, minimo, maximo, monkeypatch):
+    monkeypatch.setattr(K, "CICLO_CONFIRMADO_FC27", confirmado)
     # A revisão de 01/10/2026 simulou isto com a versão antiga: 97 299 de
     # 100 000. Sábado, domingo e segunda, actualizando saldo e investido.
     saldo, investido = 100_000, 0
@@ -91,14 +98,38 @@ def test_ciclo_de_tres_dias_nao_passa_os_70_por_cento_do_capital():
         assert compra.acao == "COMPRAR"
         saldo -= compra.quantia
         investido += compra.quantia
-    assert 69_000 <= investido <= 70_000
+    assert minimo <= investido <= maximo
 
 
-def test_no_lancamento_a_quantia_e_metade():
+def test_tecto_35_no_lancamento_e_ate_o_ciclo_estar_confirmado(monkeypatch):
     sabado_lanc = datetime(2026, 10, 3, 12, tzinfo=UTC)
     sabado_depois = DEPOIS_DO_LANCAMENTO + timedelta(days=5)
-    assert K.quantias(100_000, 0, sabado_lanc) == {r: 35_000 // 3 for r in (85, 86, 87)}
+    metade = {r: 35_000 // 3 for r in (85, 86, 87)}
+    # Por omissão o ciclo está por confirmar: 35% antes e depois do lançamento.
+    assert K.quantias(100_000, 0, sabado_lanc) == metade
+    assert K.quantias(100_000, 0, sabado_depois) == metade
+    # Confirmado: 70% depois do lançamento, mas ainda 35% durante ele.
+    monkeypatch.setattr(K, "CICLO_CONFIRMADO_FC27", True)
+    assert K.quantias(100_000, 0, sabado_lanc) == metade
     assert K.quantias(100_000, 0, sabado_depois) == {r: 70_000 // 3 for r in (85, 86, 87)}
+
+
+def test_aviso_de_ciclo_por_confirmar(monkeypatch):
+    titulos = lambda agora: [c.o_que for c in K.conselhos(agora, 100_000) if c.acao == "AVISO"]
+    ciclo = "Ciclo semanal ainda por confirmar no FC 27"
+    # Durante o lançamento o aviso é o do lançamento, não os dois (repetido).
+    # Verificado com o ciclo por confirmar: é aí que os dois podiam juntar-se.
+    lanc = titulos(datetime(2026, 10, 3, 12, tzinfo=UTC))
+    assert "Queda de lançamento do FC 27" in lanc and ciclo not in lanc
+    assert ciclo in titulos(DEPOIS_DO_LANCAMENTO)
+    monkeypatch.setattr(K, "CICLO_CONFIRMADO_FC27", True)
+    assert ciclo not in titulos(DEPOIS_DO_LANCAMENTO)
+
+
+def test_evitar_diz_a_data_da_medicao_e_ha_quantos_dias():
+    c = next(c for c in K.conselhos(DEPOIS_DO_LANCAMENTO, 100_000) if c.acao == "EVITAR")
+    assert "última medição, a 01/10" in c.o_que and "hoje" not in c.o_que
+    assert "há 32 dias que não se mede" in c.porque  # 01/10 → 02/11
 
 
 def test_quantias_nunca_negativas_nem_acima_do_saldo():
@@ -183,7 +214,7 @@ def _n(titulo, quando, categoria="leak"):
 def test_so_contam_noticias_depois_da_abertura_da_ultima_promo():
     noticias = [_n("FC 27 Antes da abertura leaked", ULTIMA_ABERTURA - timedelta(minutes=1)),
                 _n("FC 27 Depois da abertura leaked", ULTIMA_ABERTURA + timedelta(minutes=1))]
-    aviso = next(c for c in K.conselhos(DEPOIS_DO_LANCAMENTO, 100_000, noticias) if c.acao == "AVISO")
+    aviso = aviso_promo(K.conselhos(DEPOIS_DO_LANCAMENTO, 100_000, noticias))[0]
     assert "Depois da abertura" in aviso.porque and "Antes da abertura" not in aviso.porque
 
 
@@ -198,7 +229,7 @@ def test_promo_que_ja_abriu_nao_entra_no_aviso():
 
 def test_aviso_tem_a_data_da_proxima_promo_e_no_maximo_cinco_titulos():
     noticias = [_n(f"FC 27 Leak numero {i}", ULTIMA_ABERTURA + timedelta(hours=i)) for i in range(1, 8)]
-    aviso = next(c for c in K.conselhos(DEPOIS_DO_LANCAMENTO, 100_000, noticias) if c.acao == "AVISO")
+    aviso = aviso_promo(K.conselhos(DEPOIS_DO_LANCAMENTO, 100_000, noticias))[0]
     assert aviso.o_que == "Próxima promo: sexta 06/11 às 18:00 de Londres"
     # Os 5 mais recentes (7 a 3), do mais recente para o mais antigo.
     posicoes = [aviso.porque.index(f"numero {i}") for i in (7, 6, 5, 4, 3)]
@@ -210,5 +241,5 @@ def test_aviso_tem_a_data_da_proxima_promo_e_no_maximo_cinco_titulos():
 def test_com_cinco_ou_menos_nao_ha_e_mais():
     # Exactamente 5: o limite. "e mais 0" seria um defeito.
     noticias = [_n(f"FC 27 Leak {i}", ULTIMA_ABERTURA + timedelta(hours=i)) for i in range(1, 6)]
-    aviso = next(c for c in K.conselhos(DEPOIS_DO_LANCAMENTO, 100_000, noticias) if c.acao == "AVISO")
+    aviso = aviso_promo(K.conselhos(DEPOIS_DO_LANCAMENTO, 100_000, noticias))[0]
     assert "e mais" not in aviso.porque

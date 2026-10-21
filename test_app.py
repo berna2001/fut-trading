@@ -195,3 +195,10 @@ def test_ruido_antigo_do_arquivo_nao_se_mostra(monkeypatch, tmp_path):
     textos = [m.value for m in at.markdown] + [c.value for c in at.info]
     assert any("Promo Y Leaks" in t for t in textos)
     assert not any("MMOEXP" in t for t in textos)
+
+
+def test_app_mostra_o_tecto_de_35_por_cento_enquanto_o_ciclo_nao_esta_confirmado(monkeypatch):
+    monkeypatch.setenv("FUT_AGORA", SABADO)
+    at = correr()
+    compra = next(c.value for c in at.success if "**COMPRAR —" in c.value)
+    assert "tecto de 35% do capital do ciclo" in compra

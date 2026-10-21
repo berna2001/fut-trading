@@ -126,7 +126,7 @@ def aba_conselheiro():
             por_rating = ", ".join(
                 f"{v:,.0f} em {r}" for r, v in K.quantias(saldo, investido, agora).items()
             )
-            fraccao = K.FRACCAO_LANCAMENTO if K.em_lancamento(agora) else K.FRACCAO_MAXIMA
+            fraccao = K.fraccao(agora)
             linhas.append(
                 f"*Quanto, ainda neste ciclo:* {por_rating} (total {c.quantia:,.0f}; tecto de "
                 f"{fraccao:.0%} do capital do ciclo, o resto fica de reserva)"
