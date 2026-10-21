@@ -17,12 +17,12 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # O histórico todo: a verificação do registo compara com a base.
           fetch-depth: 0
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           # A versão da Streamlit Cloud, verificada nos registos de deploy do
           # bet (3.14.7). A app corre naquilo; a CI testa naquilo.
