@@ -27,13 +27,14 @@ quando vender.
    "Hero"). Estes jogadores não têm uma carta base gold normal comparável.
 2. Cada jogador entra uma só vez, com a sua **primeira** carta de promo na lista.
    E = a data em Londres do `saiu_em` dessa carta.
-3. Amostra: **50 jogadores**, sorteados com `random.Random(2026)` entre os
+3. Amostra: **35 jogadores** (eram 50; ver "Opção B" abaixo), sorteados com
+   `random.Random(2026)` entre os
    elegíveis, por ordem de `ea_id`. Não se troca nenhum depois de sorteado.
 4. Carta base: o resultado de `search_players_fc26(nome)` com `version`
    "Normal". Se não houver exactamente uma, o jogador sai e **não é
    substituído**. Só se gasta o crédito da pesquisa.
 
-Custo: 50 × (1 pesquisa + 2 histórico) = **150 créditos**, de 200.
+Custo: 35 × (1 pesquisa + 2 histórico) = **105 créditos**, de 200.
 
 ## Hipóteses (fixas)
 
@@ -95,6 +96,50 @@ mediano), a mediana do efeito for > 0 e mais de metade dos dias tiver efeito
 Esta parte **não gasta créditos**: os preços já estão em disco. Se passar no
 fodder, a medição em cartas melhores (que é onde a química mais pesa) entra
 nos créditos de Novembro, em vez de parte de H1-H3.
+
+## Opção B (decisão do utilizador a 21/10/2026, antes de qualquer dado)
+
+A H4 não passou no fodder (`ligacoes_fc26.md`), e o plano dizia que só se
+alargava a cartas melhores se passasse. O utilizador decidiu alargar na
+mesma: menos jogadores em H1-H3 (35 em vez de 50) e ~50 créditos para a
+química em cartas jogáveis. As regras abaixo ficam fixas antes de
+descarregar qualquer preço.
+
+### H4j: química em cartas jogáveis, com o TOTS
+
+O TOTS do FC 26 saiu uma liga por semana. Cada sexta é uma experiência
+natural: as cartas da liga em destaque estão ligadas às cartas novas, e as
+das outras quatro ligas servem de controlo nas mesmas datas.
+
+| dia (D) | liga do TOTS |
+|---|---|
+| 17/04/2026 | Serie A |
+| 24/04/2026 | Premier League |
+| 01/05/2026 | Bundesliga |
+| 08/05/2026 | Ligue 1 |
+| 15/05/2026 | LaLiga |
+
+Datas do calendário confirmado (FUT.GG, notícia "TOTS release dates"). Cada
+uma tem 41 ou mais cartas novas no `cartas_promos_fc26.csv`, e em cada uma a
+liga da tabela é a que tem mais cartas TOTS nesse dia (19, contra 11 ou menos
+de qualquer outra), verificado a 21/10/2026.
+
+- **Cartas:** `get_players_by_rating(year="26", min_rating=88, max_rating=89,
+  version="gold_rare")`, páginas 1 e 2 (10 créditos), com preço de PC > 0 e
+  uma das cinco ligas. Ficam de fora os jogadores que têm carta TOTS no
+  `cartas_promos_fc26.csv` (porque a carta deles ficaria afectada pela
+  própria promo, não pela química). **Até 4 por liga**, sorteadas com
+  `random.Random(2026)` por ordem de id; se houver menos de 4, entram todas.
+- **Histórico diário de PC** de cada uma: 2 créditos. Até 20 cartas = 40
+  créditos.
+- **Janelas:** as da H4 (D−7 → D−1, D−1 → D+3, D → D+7).
+- **Efeito por dia:** mediana do ROI das cartas da liga do dia − mediana do
+  ROI das cartas das outras quatro ligas.
+- **Passa** se o efeito for > 0 em **pelo menos 4 dos 5 dias** e a mediana
+  dos cinco for > 0. Com 5 dias não há metades; este critério é mais
+  exigente para compensar.
+
+Orçamento da opção B: 105 (H1-H3) + 10 + 40 (H4j) = **155 de 200**.
 
 ## O que não se testa aqui (e porquê)
 
