@@ -49,12 +49,20 @@ HORA_PROMO = time(18, 0)
 # lá, quando colou ao preço mínimo). Não é uma escolha fora da amostra.
 RATINGS = [85, 86, 87]
 
-# Decisão do utilizador a 01/10/2026: até 70% do capital do ciclo, o resto de
-# reserva. Durante a queda de lançamento, metade disso: o aviso diz para usar
-# quantias menores, e a quantia sugerida tem de o cumprir. Nenhum dos dois
-# números é medido.
+# Decisões do utilizador, nenhuma medida: até 70% do capital do ciclo, o resto
+# de reserva (01/10/2026); 35% durante a queda de lançamento e, depois dela,
+# até o ciclo semanal estar confirmado com dados do FC 27 (21/10/2026).
 FRACCAO_MAXIMA = 0.70
-FRACCAO_LANCAMENTO = 0.35
+FRACCAO_PRUDENTE = 0.35
+
+# Passa a True num PR que traga a medição do ciclo no fodder do FC 27 e o seu
+# resultado. Até lá a app usa FRACCAO_PRUDENTE.
+CICLO_CONFIRMADO_FC27 = False
+
+# A última vez que o preço do fodder do FC 27 foi medido (as 84 com preço
+# estavam todas a 650; ver medicao_fc27.md). O EVITAR cita esta data em vez de
+# "hoje": a 21/10/2026 a app ainda dizia "hoje" de uma medição de 01/10.
+ULTIMA_MEDICAO_FC27 = date(2026, 10, 1)
 
 # O estudo do FC 26 começa a 20/10/2025, 32 dias depois do primeiro ponto do
 # histórico diário (18/09/2025): o crash de lançamento ficou de fora. O
@@ -84,6 +92,13 @@ def em_lancamento(agora):
     return agora.astimezone(LONDRES).date() < FIM_LANCAMENTO
 
 
+def fraccao(agora):
+    """Que parte do capital do ciclo a app sugere investir."""
+    if em_lancamento(agora) or not CICLO_CONFIRMADO_FC27:
+        return FRACCAO_PRUDENTE
+    return FRACCAO_MAXIMA
+
+
 def proxima_promo(agora):
     """O próximo instante de abertura de promo (sexta 18h Londres) a partir de agora."""
     local = agora.astimezone(LONDRES)
@@ -102,11 +117,11 @@ def quantias(saldo, investido_no_ciclo, agora):
     sábado, ao domingo e à segunda chegava a 97% (revisão de 01/10/2026).
     """
     saldo, investido = max(saldo, 0), max(investido_no_ciclo, 0)
-    fraccao = FRACCAO_LANCAMENTO if em_lancamento(agora) else FRACCAO_MAXIMA
+    f = fraccao(agora)
     # Nunca passa o saldo: f·(s+i) − i ≤ s equivale a (f−1)·(s+i) ≤ 0, que
     # vale para f ≤ 1. Um min(falta, saldo) aqui seria código morto (a
     # mutação que o tirava sobrevivia).
-    falta = max(0, int(fraccao * (saldo + investido) - investido))
+    falta = max(0, int(f * (saldo + investido) - investido))
     return {r: falta // len(RATINGS) for r in RATINGS}
 
 
@@ -128,8 +143,17 @@ def conselhos(agora, saldo, noticias=(), investido_no_ciclo=0):
             f"até {FIM_LANCAMENTO:%d/%m}",
             "O ciclo semanal foi medido no FC 26 a partir da 5.ª semana. Nas primeiras "
             "semanas os preços caem muito, e um fim-de-semana mais barato pode não chegar "
-            f"para compensar. Por isso a quantia sugerida é {FRACCAO_LANCAMENTO:.0%} do "
+            f"para compensar. Por isso a quantia sugerida é {FRACCAO_PRUDENTE:.0%} do "
             f"capital, e não {FRACCAO_MAXIMA:.0%}, até lá.",
+            "alta",
+        ))
+    elif not CICLO_CONFIRMADO_FC27:
+        out.append(Conselho(
+            "AVISO", "Ciclo semanal ainda por confirmar no FC 27",
+            "até haver dados do fodder do FC 27",
+            "Todas as regras de compra vêm do FC 26. Até o ciclo ser medido no FC 27, a "
+            f"quantia sugerida fica em {FRACCAO_PRUDENTE:.0%} do capital do ciclo, e não "
+            f"{FRACCAO_MAXIMA:.0%} (decisão de 21/10/2026).",
             "alta",
         ))
 
@@ -190,13 +214,15 @@ def conselhos(agora, saldo, noticias=(), investido_no_ciclo=0):
 
     chao = _NUMEROS["fracao_no_minimo"]
     out.append(Conselho(
-        "EVITAR", "Ratings cujo fodder está no preço mínimo (hoje: 83 e 84)",
+        "EVITAR", f"Ratings cujo fodder está no preço mínimo "
+                  f"(na última medição, a {ULTIMA_MEDICAO_FC27:%d/%m}: 83 e 84)",
         "enquanto o mais barato do rating estiver no mínimo",
         f"No FC 26, o 83 esteve no mínimo em {chao['83'][1]:.0%} dos dias da 2.ª metade e "
         f"o 84 passou de {chao['84'][0]:.0%} para {chao['84'][1]:.0%}; foi aí que o 84 "
         "deixou de dar lucro. No mínimo, a carta não acompanha a procura e cada "
-        "operação perde a taxa. No FC 27, a 01/10/2026, as 84 com preço estavam todas "
-        "a 650. Quando o 84 descolar do mínimo, volta a ser candidato.",
+        f"operação perde a taxa. No FC 27, a {ULTIMA_MEDICAO_FC27:%d/%m/%Y}, as 84 com preço "
+        f"estavam todas a 650; há {(agora.date() - ULTIMA_MEDICAO_FC27).days} dias que não "
+        "se mede. Confirma na web app se o mais barato do rating ainda está no mínimo.",
         "média",
     ))
 
