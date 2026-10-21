@@ -130,7 +130,7 @@ def test_sabado_a_app_mostra_a_quantia_do_conselheiro(monkeypatch, tmp_path):
 def test_noticia_de_promo_recente_aparece_no_conselheiro(monkeypatch, tmp_path):
     f = tmp_path / "n.csv"
     f.write_text("id,publicado_em,visto_em,fonte,categoria,titulo,link\n"
-                 "a,2026-11-05T10:00:00+00:00,2026-11-05T10:00:00+00:00,x,leak,"
+                 "a,2026-11-07T08:00:00+00:00,2026-11-07T08:00:00+00:00,x,leak,"
                  "FC 27 Promo Teste leaked,https://x\n", encoding="utf-8")
     monkeypatch.setenv("FUT_NOTICIAS", str(f))
     monkeypatch.setenv("FUT_AGORA", SABADO)
@@ -157,7 +157,7 @@ def test_noticias_ao_vivo_aparecem_sem_estarem_no_arquivo(monkeypatch, tmp_path)
     arquivo = tmp_path / "n.csv"
     arquivo.write_text("id,publicado_em,visto_em,fonte,categoria,titulo,link\n", encoding="utf-8")
     rss = ("<rss><channel><item><title>FC 27 Promo Ao Vivo leaked</title><link>https://x</link>"
-           "<pubDate>Thu, 05 Nov 2026 10:00:00 +0000</pubDate></item></channel></rss>")
+           "<pubDate>Sat, 07 Nov 2026 08:00:00 +0000</pubDate></item></channel></rss>")
     monkeypatch.setattr(N, "descarregar", lambda url: rss)
     monkeypatch.setenv("FUT_AO_VIVO", "1")
     monkeypatch.setenv("FUT_NOTICIAS", str(arquivo))

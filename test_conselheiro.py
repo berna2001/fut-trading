@@ -76,15 +76,6 @@ def test_noticias_de_promo_recentes_viram_aviso_e_as_antigas_nao():
     assert "Promo velha" not in avisos[0].porque and "Evo nova" not in avisos[0].porque
 
 
-def test_varias_noticias_de_promo_dao_uma_so_caixa_da_mais_recente_para_a_mais_antiga():
-    agora = DEPOIS_DO_LANCAMENTO
-    noticias = [{"categoria": c, "titulo": t, "publicado_em": agora - timedelta(days=d)}
-                for c, t, d in [("leak", "Antiga", 5), ("promo", "Nova", 1), ("leak", "Meio", 3)]]
-    avisos = [c for c in K.conselhos(agora, 100_000, noticias) if c.acao == "AVISO"]
-    assert len(avisos) == 1
-    p = avisos[0].porque
-    assert p.index("Nova") < p.index("Meio") < p.index("Antiga")
-
 
 def test_sem_noticias_de_promo_nao_ha_aviso():
     assert "AVISO" not in acoes(DEPOIS_DO_LANCAMENTO, noticias=[])
@@ -165,13 +156,6 @@ def test_lancamento_dura_os_mesmos_32_dias_que_o_estudo_do_fc26_deixou_de_fora()
     assert not K.em_lancamento(datetime(2026, 10, 18, 0, tzinfo=UTC))
 
 
-def test_noticia_com_mais_de_7_dias_fica_de_fora():
-    agora = DEPOIS_DO_LANCAMENTO
-    n = [{"categoria": "leak", "titulo": "Velha", "publicado_em": agora - timedelta(days=7, hours=12)},
-         {"categoria": "leak", "titulo": "Recente", "publicado_em": agora - timedelta(days=6, hours=12)}]
-    aviso = next(c for c in K.conselhos(agora, 100_000, n) if c.acao == "AVISO")
-    assert "Recente" in aviso.porque and "Velha" not in aviso.porque
-
 
 def test_texto_do_domingo_so_aparece_ao_domingo():
     sabado = principal(DEPOIS_DO_LANCAMENTO + timedelta(days=5))
@@ -185,3 +169,46 @@ def test_proxima_promo_usa_o_dia_de_londres_perto_da_meia_noite():
     # mesmo dia às 18h de Londres, e não no sábado.
     p = K.proxima_promo(datetime(2026, 10, 22, 23, 30, tzinfo=UTC))
     assert p.astimezone(UTC) == datetime(2026, 10, 23, 17, tzinfo=UTC)
+
+
+# DEPOIS_DO_LANCAMENTO é segunda 02/11/2026 12:00 UTC. A última promo abriu na
+# sexta 30/10 às 18:00 de Londres, que em Novembro são 18:00 UTC.
+ULTIMA_ABERTURA = datetime(2026, 10, 30, 18, tzinfo=UTC)
+
+
+def _n(titulo, quando, categoria="leak"):
+    return {"categoria": categoria, "titulo": titulo, "publicado_em": quando}
+
+
+def test_so_contam_noticias_depois_da_abertura_da_ultima_promo():
+    noticias = [_n("FC 27 Antes da abertura leaked", ULTIMA_ABERTURA - timedelta(minutes=1)),
+                _n("FC 27 Depois da abertura leaked", ULTIMA_ABERTURA + timedelta(minutes=1))]
+    aviso = next(c for c in K.conselhos(DEPOIS_DO_LANCAMENTO, 100_000, noticias) if c.acao == "AVISO")
+    assert "Depois da abertura" in aviso.porque and "Antes da abertura" not in aviso.porque
+
+
+def test_promo_que_ja_abriu_nao_entra_no_aviso():
+    quando = ULTIMA_ABERTURA + timedelta(hours=2)
+    for titulo in ["Future Stars Team 2 Now Available in EA SPORTS FC 27",
+                   "EA Sports FC 27 Future Stars Team 1 Revealed",
+                   "FC 27 Future Stars Team 1 is now live with new cards",
+                   "FC 27 Future Stars: Live Tracker & Upgrades Explained"]:
+        assert K.sobre_a_proxima_promo([_n(titulo, quando, "promo")], DEPOIS_DO_LANCAMENTO) == []
+
+
+def test_aviso_tem_a_data_da_proxima_promo_e_no_maximo_cinco_titulos():
+    noticias = [_n(f"FC 27 Leak numero {i}", ULTIMA_ABERTURA + timedelta(hours=i)) for i in range(1, 8)]
+    aviso = next(c for c in K.conselhos(DEPOIS_DO_LANCAMENTO, 100_000, noticias) if c.acao == "AVISO")
+    assert aviso.o_que == "Próxima promo: sexta 06/11 às 18:00 de Londres"
+    # Os 5 mais recentes (7 a 3), do mais recente para o mais antigo.
+    posicoes = [aviso.porque.index(f"numero {i}") for i in (7, 6, 5, 4, 3)]
+    assert posicoes == sorted(posicoes)
+    assert "numero 2" not in aviso.porque and "numero 1 " not in aviso.porque
+    assert "e mais 2 na aba Notícias" in aviso.porque
+
+
+def test_com_cinco_ou_menos_nao_ha_e_mais():
+    # Exactamente 5: o limite. "e mais 0" seria um defeito.
+    noticias = [_n(f"FC 27 Leak {i}", ULTIMA_ABERTURA + timedelta(hours=i)) for i in range(1, 6)]
+    aviso = next(c for c in K.conselhos(DEPOIS_DO_LANCAMENTO, 100_000, noticias) if c.acao == "AVISO")
+    assert "e mais" not in aviso.porque
