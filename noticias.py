@@ -35,7 +35,10 @@ FONTES = {
     "gnews_leaks": _GN + "%22FC+27%22+(leak+OR+leaked+OR+leaks)+when:2d",
     "gnews_sbc": _GN + "%22FC+27%22+(SBC+OR+%22squad+building%22)+when:2d",
     "gnews_promo": _GN + "%22FC+27%22+(promo+OR+%22team+of+the+week%22+OR+TOTW+OR+evolution)+when:2d",
-    "soccergaming": "https://soccergaming.com/feed/",
+    # O RSS directo do SoccerGaming passou a dar 403: em 17 de 25 recolhas no
+    # GitHub, na Streamlit Cloud e, a 21/10/2026, também de um PC doméstico.
+    # O Google News indexa o site (52 artigos em 14 dias, a 21/10/2026).
+    "gnews_soccergaming": _GN + "site:soccergaming.com+%22FC+27%22+when:2d",
 }
 
 # Tem de falar do jogo...
@@ -61,12 +64,22 @@ CATEGORIAS = [
 _RUIDO = re.compile(
     r"\b(kits?|career mode|codes?|redeem|pre-?order|"
     r"football manager|eFootball|NBA 2K|Madden|"
-    r"best young|ranked)\b", re.I)
+    r"best young|ranked|"
+    # Guias e mods, não notícias. "Coins" não entra: o calendário de promos do
+    # WhatsGaming ("…How to Plan Your Coins") saía por isso.
+    r"pack opening|drop rates?|mods?|gallery level)\b", re.I)
+
+# Sites que vendem coins. Vender coins viola os termos da EA, e os artigos
+# deles são publicidade que republica os leaks das fontes legítimas. Nas três
+# primeiras semanas do arquivo foram 18 de 161 notícias (21/10/2026).
+_VENDEDORES = re.compile(
+    r"\b(MMOEXP|GameGPU|Invision Game Community|lootbar|IGGM|utnice|futcoinspot|"
+    r"supercoinsy|mrgeek|gamsgo|itemd2r|topuplive|mmopixel|U4GM|Eldorado)\b", re.I)
 
 
 def classificar(titulo):
     """Devolve a categoria de mercado do título, ou None se não interessar."""
-    if not _JOGO.search(titulo) or _RUIDO.search(titulo):
+    if not _JOGO.search(titulo) or _RUIDO.search(titulo) or _VENDEDORES.search(titulo):
         return None
     for nome, padrao in CATEGORIAS:
         if padrao.search(titulo):

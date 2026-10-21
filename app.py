@@ -99,6 +99,9 @@ def ler_noticias():
     # pandas adivinha e avisa — e no bet um aviso destes escondia um erro de
     # datas.
     df["publicado_em"] = pd.to_datetime(df["publicado_em"], format="ISO8601", utc=True)
+    # O arquivo nunca se apaga (a CI recusa-o), mas o filtro melhora: o que o
+    # filtro de hoje recusa (vendedores de coins, guias) deixa de se mostrar.
+    df = df[df["titulo"].map(N.classificar).notna()]
     return df.sort_values("publicado_em", ascending=False)
 
 

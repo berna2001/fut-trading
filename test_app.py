@@ -131,11 +131,11 @@ def test_noticia_de_promo_recente_aparece_no_conselheiro(monkeypatch, tmp_path):
     f = tmp_path / "n.csv"
     f.write_text("id,publicado_em,visto_em,fonte,categoria,titulo,link\n"
                  "a,2026-11-05T10:00:00+00:00,2026-11-05T10:00:00+00:00,x,leak,"
-                 "Promo Teste leaked,https://x\n", encoding="utf-8")
+                 "FC 27 Promo Teste leaked,https://x\n", encoding="utf-8")
     monkeypatch.setenv("FUT_NOTICIAS", str(f))
     monkeypatch.setenv("FUT_AGORA", SABADO)
     at = correr()
-    assert any("Promo Teste leaked" in c.value for c in at.info)
+    assert any("FC 27 Promo Teste leaked" in c.value for c in at.info)
 
 
 def test_plano_so_tem_roi_nos_dias_de_compra(monkeypatch):
@@ -181,3 +181,17 @@ def test_sem_leitura_ao_vivo_nao_vai_a_rede(monkeypatch):
     at = correr()   # FUT_AO_VIVO=0 pelo conftest
     assert not at.exception
     assert not any("Esta aba falhou" in e.value for e in at.error)
+
+
+def test_ruido_antigo_do_arquivo_nao_se_mostra(monkeypatch, tmp_path):
+    f = tmp_path / "n.csv"
+    f.write_text("id,publicado_em,visto_em,fonte,categoria,titulo,link\n"
+                 "a,2026-11-05T10:00:00+00:00,x,x,leak,FC 27 Promo X Leaks - MMOEXP,https://a\n"
+                 "b,2026-11-05T11:00:00+00:00,x,x,leak,FC 27 Promo Y Leaks - RealSport101,https://b\n",
+                 encoding="utf-8")
+    monkeypatch.setenv("FUT_NOTICIAS", str(f))
+    monkeypatch.setenv("FUT_AGORA", SABADO)
+    at = correr()
+    textos = [m.value for m in at.markdown] + [c.value for c in at.info]
+    assert any("Promo Y Leaks" in t for t in textos)
+    assert not any("MMOEXP" in t for t in textos)
