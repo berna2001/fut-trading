@@ -22,6 +22,7 @@ Decisões do utilizador, não medidas (01/10/2026):
 """
 
 import json
+import re
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
@@ -199,20 +200,45 @@ def conselhos(agora, saldo, noticias=(), investido_no_ciclo=0):
         "média",
     ))
 
-    limite = agora - timedelta(days=7)
-    recentes = sorted(
-        (n for n in noticias
-         if n["categoria"] in ("leak", "promo") and n["publicado_em"] >= limite),
-        key=lambda n: n["publicado_em"], reverse=True,
-    )
+    recentes = sobre_a_proxima_promo(noticias, agora)
     if recentes:
-        # Uma só caixa: uma por notícia repetia o mesmo conselho várias vezes.
-        lista = "; ".join(f"{n['titulo']} ({n['publicado_em']:%d/%m})" for n in recentes)
+        # Uma só caixa, no máximo MAX_NOTICIAS títulos: a 21/10/2026 esta
+        # caixa listava 18, misturando promos que já tinham aberto.
+        lista = "; ".join(f"{n['titulo']} ({n['publicado_em']:%d/%m})"
+                          for n in recentes[:MAX_NOTICIAS])
+        resto = len(recentes) - MAX_NOTICIAS
         out.append(Conselho(
-            "AVISO", f"{len(recentes)} promo(s) anunciada(s) ou leaked nos últimos 7 dias",
-            f"vender o fodder antes de sexta às {HORA_PROMO:%H:%M} de Londres",
-            f"{lista}. O efeito de cada promo em concreto não está medido; a regra de "
-            "vender antes da abertura está.",
+            "AVISO",
+            f"Próxima promo: {DIAS[promo.weekday()]} {promo:%d/%m} às {promo:%H:%M} de Londres",
+            "vender o fodder antes da abertura",
+            f"{lista}" + (f" (e mais {resto} na aba Notícias)" if resto > 0 else "")
+            + ". O efeito de cada promo em concreto não está medido; a regra de vender "
+              "antes da abertura está.",
             "baixa",
         ))
     return out
+
+
+MAX_NOTICIAS = 5
+
+# Títulos que anunciam uma promo que já abriu. Notícia, mas não aviso.
+_JA_ABRIU = re.compile(
+    r"\b(now (available|live)|is (now )?live|available now|out now|revealed|"
+    r"live tracker|tracker|receives)\b", re.I)
+
+
+def sobre_a_proxima_promo(noticias, agora):
+    """Notícias de promos publicadas depois da abertura da última promo.
+
+    O que saiu antes da sexta passada às 18h de Londres fala de uma promo que
+    já abriu (era o caso de metade da caixa a 21/10/2026). Da mais recente
+    para a mais antiga.
+    """
+    ultima_abertura = proxima_promo(agora) - timedelta(days=7)
+    return sorted(
+        (n for n in noticias
+         if n["categoria"] in ("leak", "promo")
+         and n["publicado_em"] >= ultima_abertura
+         and not _JA_ABRIU.search(n["titulo"])),
+        key=lambda n: n["publicado_em"], reverse=True,
+    )
