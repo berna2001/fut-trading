@@ -122,3 +122,26 @@ def test_ao_vivo_junta_o_arquivo_e_as_fontes_sem_gravar(tmp_path, monkeypatch):
     assert len(falhas) == 1
     # Não grava: o arquivo é só da recolha agendada.
     assert arquivo.read_bytes() == antes
+
+
+@pytest.mark.parametrize("titulo, esperado", [
+    # Vendedores de coins: fora, mesmo quando republicam leaks.
+    ("FC 27 Ultimate Scream Promo Leaks: Retro Players, Hero Swaps - MMOEXP", None),
+    ("Should You Spend FC 27 Coins on Packs or Players? - GameGPU", None),
+    ("FC 27 Coins: How to Make Better Squad Upgrades - Invision Game Community", None),
+    # Guias e mods: fora.
+    ("FC 27 Future Stars Team 2 Pack Opening Guide: Best Packs, Rewards & Drop Rates", None),
+    ("FC 27 Mod Unlocks Hidden ICONS, Heroes, and Players", None),
+    # "Coins" sozinho não chega para sair: era o calendário de promos.
+    ("FC 27 Season 2 Promo Schedule: Ultimate Scream, RTTK, Thunderstruck and How to Plan "
+     "Your Coins - WhatsGaming", "promo"),
+    ("FC 27 Future Stars Team 2 Leaks: Full Squad & Release Time - RealSport101", "leak"),
+])
+def test_ruido_das_primeiras_semanas(titulo, esperado):
+    assert N.classificar(titulo) == esperado
+
+
+def test_soccergaming_vem_pelo_google_news():
+    # O RSS directo dava 403 em 68% das recolhas.
+    assert all("soccergaming.com/feed" not in url for url in N.FONTES.values())
+    assert any("site:soccergaming.com" in url for url in N.FONTES.values())

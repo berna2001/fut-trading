@@ -49,8 +49,10 @@ def test_pasta_precos_e_parquet_sao_recusados():
 
 def test_o_repositorio_actual_passa():
     # Corre o script como a CI corre: sobre o git ls-files.
+    # stdin=DEVNULL: num terminal sem entrada padrão o Windows rebentava com
+    # WinError 6 ao duplicar o handle (visto a 21/10/2026).
     r = subprocess.run([sys.executable, "guardar_precos.py"], cwd=Path(__file__).parent,
-                       capture_output=True, text=True)
+                       capture_output=True, text=True, stdin=subprocess.DEVNULL)
     assert r.returncode == 0, r.stdout
 
 
