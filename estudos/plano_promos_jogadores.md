@@ -63,6 +63,39 @@ resultado justificar. Se nenhuma passar, isso também é um resultado: comprar
 a carta base de um jogador nomeado num leak não é uma estratégia, e a app
 deve dizê-lo.
 
+## H4: química (acrescentada a 21/10/2026, antes de calcular)
+
+*Sugestão do utilizador:* quando sai uma promo, sobem as cartas que fazem
+ligação de química com as cartas novas (mesma nação, mesma liga, ou ambas).
+
+- **Dias de promo:** cada data em Londres com **10 ou mais** cartas novas no
+  `cartas_promos_fc26.csv`.
+- **Nações e ligas fortes nesse dia:** as que têm **3 ou mais** cartas novas
+  nesse dia.
+- **Cartas medidas:** as 65 cartas de fodder do FC 26 já descarregadas, só
+  84-87 (o 83 está no preço mínimo e não pode subir). Uma carta está
+  **ligada** num dia de promo se a nação **ou** a liga dela for forte nesse
+  dia. As outras são o controlo, nas mesmas datas, o que tira o efeito do
+  mercado.
+- **Nomes:** o FUT.GG dá identificadores com nomes e o FUTBIN dá só nomes;
+  cruzam-se pelo nome normalizado. As que não cruzarem ficam listadas no
+  relatório, e não são adivinhadas.
+
+| | comprar | vender | o que testa |
+|---|---|---|---|
+| **H4a** | D−7 | D−1 | antecipar a procura de ligações |
+| **H4b** | D−1 | D+3 | a procura de ligações logo depois de a promo abrir |
+| **H4c** | D | D+7 | a semana a seguir |
+
+**Efeito por dia:** mediana do ROI das ligadas − mediana do ROI das não
+ligadas. **Passa** se, nas duas metades dos dias de promo (antes e depois do
+mediano), a mediana do efeito for > 0 e mais de metade dos dias tiver efeito
+> 0.
+
+Esta parte **não gasta créditos**: os preços já estão em disco. Se passar no
+fodder, a medição em cartas melhores (que é onde a química mais pesa) entra
+nos créditos de Novembro, em vez de parte de H1-H3.
+
 ## O que não se testa aqui (e porquê)
 
 - **A carta de promo em si** (comprar a carta nova depois de sair): os preços

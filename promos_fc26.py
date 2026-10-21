@@ -38,12 +38,22 @@ PAGINAS = {
     "Team of the Season": "/rarities/team-of-the-season/",
     "Futties": "/rarities/futties/",
 }
-COLUNAS = ["promo", "ea_id", "jogador_id", "jogador_slug", "nome", "rating", "raridade", "saiu_em"]
+COLUNAS = ["promo", "ea_id", "jogador_id", "jogador_slug", "nome", "rating", "raridade", "saiu_em",
+           "nacao_id", "liga_id", "clube_id"]
 
 _ALT = re.compile(r'futgg-player-item-card/26-(\d+)\.[^"]*" alt="([^"]+) - (\d{2}) - ([^"]+)"')
 _DATA = re.compile(r'item-social-small/26-(\d+)\.[^"]*",isCurrentGame:[^,]*,createdAt:"([^"]+)"')
 _LINK = re.compile(r'href="/players/(\d+)-([a-z0-9\-]+)/26-(\d+)/"')
 _PAGINAS = re.compile(r'href="[^"]*\?page=(\d+)"')
+# Nação, liga e clube de cada carta: os identificadores da EA nos endereços
+# das imagens. Dentro de cada carta vêm por esta ordem — clube, nação, liga,
+# imagem da carta (com o ea_id) e createdAt — por isso os de uma carta são os
+# últimos antes da sua imagem. Os nomes vêm à parte (_NOMES): um objecto
+# repetido na página aparece só como referência ($R[n]), sem o nome.
+_IMAGEM = {tipo: re.compile(rf'{tipo}ImageUrl:"[^"]*/2026/{tipo}/(\d+)\.')
+           for tipo in ("nation", "league", "club")}
+_NOMES = re.compile(r'eaId:(\d+),(?:game:"\d+",)?slug:"[^"]*",name:"([^"]+)",[^{}]*?'
+                    r'imagePath:"2026/(nation|league|club)/')
 
 
 def extrair(html_texto, promo):
@@ -55,15 +65,42 @@ def extrair(html_texto, promo):
              for ea, nome, r, rar in _ALT.findall(html_texto)}
     datas = dict(_DATA.findall(html_texto))
     jogadores = {ea: (jid, slug) for jid, slug, ea in _LINK.findall(html_texto)}
+    ligacoes = _ligacoes(html_texto)
     cartas = []
     for ea, (nome, rating, raridade) in nomes.items():
         if ea not in datas:
             continue
         jid, slug = jogadores.get(ea, ("", ""))
+        nacao, liga, clube = ligacoes.get(ea, ("", "", ""))
         cartas.append({"promo": promo, "ea_id": ea, "jogador_id": jid, "jogador_slug": slug,
                        "nome": nome, "rating": rating, "raridade": raridade,
-                       "saiu_em": datas[ea]})
+                       "saiu_em": datas[ea], "nacao_id": nacao, "liga_id": liga,
+                       "clube_id": clube})
     return cartas
+
+
+def _ligacoes(html_texto):
+    """{ea_id: (nação, liga, clube)}: os últimos ids de cada tipo antes da
+    imagem da carta."""
+    posicoes = {tipo: [(m.start(), m.group(1)) for m in r.finditer(html_texto)]
+                for tipo, r in _IMAGEM.items()}
+    out = {}
+    # A imagem da carta aparece duas vezes: uma solta, mais acima, e outra
+    # dentro do registo, colada ao createdAt. Só a segunda tem antes de si a
+    # nação, a liga e o clube da própria carta; a primeira tem os da carta
+    # anterior (o João Félix saía com o clube do Vinícius).
+    for m in _DATA.finditer(html_texto):
+        ids = []
+        for tipo in ("nation", "league", "club"):
+            antes = [v for p, v in posicoes[tipo] if p < m.start()]
+            ids.append(antes[-1] if antes else "")
+        out[m.group(1)] = tuple(ids)
+    return out
+
+
+def nomes_de_ligacoes(html_texto):
+    """{(tipo, id): nome} para nações, ligas e clubes definidos na página."""
+    return {(tipo, i): html.unescape(nome) for i, nome, tipo in _NOMES.findall(html_texto)}
 
 
 def ultima_pagina(html_texto):

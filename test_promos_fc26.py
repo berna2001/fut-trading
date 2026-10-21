@@ -39,3 +39,39 @@ def test_ultima_pagina():
 def test_colunas_nao_tem_preco():
     import guardar_precos as G
     assert not any(G.e_preco(c) for c in PR.COLUNAS)
+
+
+# Duas cartas seguidas, com a forma real (21/10/2026): a imagem de cada carta
+# aparece uma vez solta, antes, e outra dentro do registo, a seguir ao clube,
+# à nação e à liga da própria carta. A primeira versão do extractor usava a
+# solta e dava à 2.ª carta a nação, a liga e o clube da 1.ª.
+DUAS = """
+<img src="https://x/2026/futgg-player-item-card/26-111.a.webp" alt="Vini Jr. - 90 - Ultimate Scream"/>
+<img src="https://x/2026/futgg-player-item-card/26-222.b.webp" alt="João Félix - 86 - Ultimate Scream"/>
+socialImageUrl:"https://x/2026/futgg-player-item-social-small/26-111.s.webp" ,eaId:111,commonName:"Vini Jr.",
+clubImageUrl:"https://x/2026/club/243.c.png",nationImageUrl:"https://x/2026/nation/54.n.png",leagueImageUrl:"https://x/2026/league/53.l.png",
+socialImageUrl:"https://x/2026/futgg-player-item-social-small/26-111.s.webp",isCurrentGame:!1,createdAt:"2025-10-24T17:00:00Z",
+club:$R[1]={id:1,eaId:243,game:"26",slug:"243-real-madrid",name:"Real Madrid",leagueEaId:53,imagePath:"2026/club/243.c.png"},
+nation:$R[2]={id:2,eaId:54,slug:"brazil",name:"Brazil",imagePath:"2026/nation/54.n.png"},
+league:$R[3]={id:3,eaId:53,slug:"laliga",name:"LALIGA EA SPORTS",imagePath:"2026/league/53.l.png"},
+socialImageUrl:"https://x/2026/futgg-player-item-social-small/26-222.s.webp" ,eaId:222,commonName:"João Félix",
+clubImageUrl:"https://x/2026/club/112139.c.png",nationImageUrl:"https://x/2026/nation/38.n.png",leagueImageUrl:"https://x/2026/league/350.l.png",
+socialImageUrl:"https://x/2026/futgg-player-item-social-small/26-222.s.webp",isCurrentGame:!1,createdAt:"2025-10-31T18:00:00Z",
+nation:$R[4]={id:4,eaId:38,slug:"portugal",name:"Portugal",imagePath:"2026/nation/38.n.png"},
+nation:$R[2],
+nation:$R[5]={id:5,eaId:108,slug:"cote-divoire",name:"C&#244;te d&#39;Ivoire",imagePath:"2026/nation/108.n.png"},
+"""
+
+
+def test_cada_carta_fica_com_a_sua_nacao_liga_e_clube():
+    c = {k["ea_id"]: k for k in PR.extrair(DUAS, "Ultimate Scream")}
+    assert (c["111"]["nacao_id"], c["111"]["liga_id"], c["111"]["clube_id"]) == ("54", "53", "243")
+    assert (c["222"]["nacao_id"], c["222"]["liga_id"], c["222"]["clube_id"]) == ("38", "350", "112139")
+
+
+def test_nomes_das_ligacoes_ignoram_referencias_sem_nome():
+    n = PR.nomes_de_ligacoes(DUAS)
+    assert n[("nation", "54")] == "Brazil" and n[("nation", "38")] == "Portugal"
+    assert n[("league", "53")] == "LALIGA EA SPORTS" and n[("club", "243")] == "Real Madrid"
+    assert n[("nation", "108")] == "Côte d'Ivoire"          # entidades desfeitas
+    assert len([k for k in n if k[0] == "nation"]) == 3   # o "$R[2]" repetido não cria entrada
